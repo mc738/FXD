@@ -2,29 +2,28 @@
 
 open System
 open FXD
+open FXD
+open FXD.Documentation
 
 // Define a function to construct a message to print
 let from whom =
     sprintf "from %s" whom
 
+let passThru (members: Member list) (errors: Linter.LintingError list) =
+    Console.ForegroundColor <- ConsoleColor.Magenta
+    errors |> List.map (fun e -> printfn $"{e}") |> ignore
+    Console.ResetColor()
+    Ok members
+
 [<EntryPoint>]
 let main argv =
-    // "C:\\Users\\44748\\Projects\\PsionicServices\\PsionicServices.Utils\\Encryption.fs"
-    let s = SourceExtractor.parseAndCheckScript "C:\\Users\\44748\\Projects\\TestLibrary\\TestLibrary\\Library.fs"
-    let assembly = s.AssemblySignature
     
-    let r = assembly.Entities |> List.ofSeq |> List.map SourceExtractor.create
-    
-    printfn $"{r}"
-
-
-    let members = XmlDocExtractor.extract "C:\\Users\\44748\\Projects\\TestLibrary\\TestLibrary\\bin\\Debug\\net5.0\\TestLibrary.xml"
-
-    // Parse [Project name].xml docs.
-    // Parse file.
-    // Combine.  
-    
-    
+    let members =
+        XmlDocExtractor.extract "C:\\Users\\44748\\Projects\\TestLibrary\\TestLibrary\\bin\\Debug\\net5.0\\TestLibrary.xml"
+        |> SourceExtractor.extract "C:\\Users\\44748\\Projects\\TestLibrary\\TestLibrary\\Library.fs"
+        |> Linter.run passThru
+        
+    printfn $"{members}"
     
     let message = from "F#" // Call the function
     printfn "Hello world %s" message
