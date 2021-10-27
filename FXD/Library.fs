@@ -345,7 +345,7 @@ module Linter =
                    if settings.ExamplesRequired then
                        yield LintingError.MissingXmlDocExample doc.Name ]
 
-    let run (errorsHandler: Member list -> LintingError list -> Result<Member list, string>) (members: Member list) =
+    let run (errorsHandler: Member list -> LintingError list -> Member list) (members: Member list) =
 
         let rec handler (m: Member) =
             match m with
@@ -409,6 +409,3 @@ module Linter =
             | Member.Namespace nd -> nd.Members |> List.map handler |> List.concat
 
         errorsHandler members (members |> List.map handler |> List.concat)
-        
-        
-    
