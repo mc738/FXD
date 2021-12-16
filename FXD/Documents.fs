@@ -12,7 +12,6 @@ open FDOM.Core.Dsl.Article
 
 module Documents =
 
-
     type CompiledMember =
         { Name: string
           Member: Member
