@@ -9,7 +9,6 @@ open FDOM.Rendering
 open FXD.Documentation
 open FDOM.Core.Dsl.Article
 
-
 module Documents =
 
     type CompiledMember =
@@ -44,7 +43,7 @@ module Documents =
 
             let examples =
                 xdoc.Examples
-                |> List.map (fun e -> code [ text e ])
+                |> List.map (fun e -> codeBlock [ text e ])
                 <++ h3 [ text "Examples" ]
 
             summary, examples, returns
@@ -55,7 +54,7 @@ module Documents =
 
         let signature =
             [ h3 [ text "Signature" ]
-              code [ text fd.Signature ] ]
+              codeBlock [ text fd.Signature ] ]
 
         let parameters =
             fd.Parameters
@@ -110,21 +109,57 @@ module Documents =
         >?> returns
         >+> examples
 
+
+    let handleMethod (md: MethodDocument) =
+        let (summary, examples, returns) = handleXmlDoc md.XmlDocument
+
+        let signature =
+            [ h3 [ text "Signature" ]
+              codeBlock [ text md.Signature ] ]
+
+        let parameters =
+            md.Parameters
+            |> List.collect
+                (fun param ->
+                    [ yield p [ text "Name: "; text param.Name ]
+                      yield p [ text "Type: "; text param.Type ]
+                      yield p [ text (param.Document |> Option.defaultValue "") ] ])
+            <++ h3 [ text "Parameters" ]
+
+        [ h2 [ text md.Name ] ] >?> summary
+        >+> signature
+        >+> parameters
+        >?> returns
+        >+> examples
+
+
+    let rec handleProperties (pd: PropertyDocument) =
+        let (summary, examples, returns) = handleXmlDoc pd.XmlDocument
+
+        let pType =
+            [ h3 [ text "Type" ]
+              codeBlock [ text pd.Type ] ]
+
+        [ h2 [ text pd.Name ] ] >?> summary >+> pType
+        >?> returns
+        >+> examples
+
     let handleClass (cd: ClassDocument) =
         let (summary, examples, returns) = handleXmlDoc cd.XmlDocument
 
-        let members =
-            cd.Members
-            |> List.choose
-                (fun m ->
-                    match m with
-                    | Member.Function fd -> handleFunction fd |> Some
-                    | _ -> None)
+        let properties =
+            cd.Properties
+            |> List.map handleProperties
             |> List.concat
-            <++ h3 [ text "Cases" ]
+            <++ h3 [ text "Properties" ]
+
+        let methods =
+            cd.Methods |> List.map handleMethod |> List.concat
+            <++ h3 [ text "Methods" ]
 
         [ h2 [ text cd.DisplayName ] ] >?> summary
-        >+> members
+        >+> properties
+        >+> methods
         >?> returns
         >+> examples
 
@@ -203,10 +238,28 @@ module Documents =
 
         File.WriteAllText(path, html)
 
+    let htmlFromTemplate templatePath data path (document: DOM.Document) =
+        let stylesheets =
+            document.Resources
+            |> List.filter (fun r -> r.Type = "stylesheet")
+            |> List.map (fun r -> $"{document.SnakeCaseName}/{r.VirtualPath}")
+
+        let scripts =
+            document.Resources
+            |> List.filter (fun r -> r.Type = "script")
+            |> List.map (fun r -> $"{document.SnakeCaseName}/{r.VirtualPath}")
+
+        let html =
+            Html.renderFromTemplate templatePath data stylesheets scripts document
+
+        File.WriteAllText(path, html)
+
     let pdf path (stylePath: string) (document: DOM.Document) = Pdf.render path stylePath document
-        
+
     let render (renderers: (DOM.Document -> unit) list) (document: DOM.Document) =
-        renderers |> List.map (fun fn -> fn document) |> ignore
+        renderers
+        |> List.map (fun fn -> fn document)
+        |> ignore
 
 //let qh = QueryHandler.Create($"/home/max/Data/FDOM_Tests/blob_store/{DateTime.Now:yyyyMMddHHmmss}.db")
 

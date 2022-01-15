@@ -3,6 +3,7 @@
 open System
 open System.IO
 open System.Reflection.Metadata
+open System.Xml
 open System.Xml.Linq
 open System.Xml.Linq
 open FSharp.Compiler.CodeAnalysis
@@ -130,16 +131,32 @@ module Documentation =
           DisplayName: string
           XDocSignature: string
           XmlDocument: XmlDocumentMember option
-          Members: Member list }
+          Properties: PropertyDocument list
+          Methods: MethodDocument list }
 
-        static member Create(entity: FSharpEntity, children: Member list, docMembers: Map<string, XmlDocumentMember>) =
+        static member Create(entity: FSharpEntity, properties: PropertyDocument list, methods: MethodDocument list, docMembers: Map<string, XmlDocumentMember>) =
             { FullName = entity.FullName
               DisplayName = entity.DisplayName
               XDocSignature = entity.XmlDocSig
               XmlDocument = docMembers.TryFind entity.XmlDocSig
-              Members = children }
+              Properties = properties
+              Methods = methods }
             |> Member.Class
 
+    and PropertyDocument = {
+        Name: string
+        Type: string
+        XmlDocument: XmlDocumentMember option
+        
+    }
+    
+    and MethodDocument = {
+        Name: string
+        Signature: string
+        Parameters: FunctionParameter list
+        XmlDocument: XmlDocumentMember option
+    }
+    
     and ModuleDocument =
         { FullName: string
           DisplayName: string
@@ -164,6 +181,8 @@ module Documentation =
         | Class of ClassDocument
         | Module of ModuleDocument
         | Namespace of NamespaceDocument
+
+open Documentation
 
 module XmlDocExtractor =
 
@@ -193,6 +212,34 @@ module XmlDocExtractor =
         |> XDocument.Parse
         |> fun xdoc -> xdoc.Root
 
+    let extractMember (el: XElement) =
+        { Name =
+              el
+              |> getAttribute "name"
+              |> Option.map (fun at -> at.Value)
+              |> Option.defaultValue ""
+          Summary =
+              el
+              |> getElement "summary"
+              |> Option.map (fun el -> el.Value)
+          Parameters =
+              el.Elements(xName "param")
+              |> listMap
+                  (fun pel ->
+                      { Name =
+                            pel
+                            |> getAttribute "name"
+                            |> Option.map (fun at -> at.Value)
+                            |> Option.defaultValue ""
+                        Description = pel.Value })
+          Returns =
+              el
+              |> getElement "returns"
+              |> Option.map (fun el -> el.Value)
+          Examples =
+              el.Elements(xName "example")
+              |> listMap (fun eel -> eel.Value) }
+    
     let extract path =
         let root = load path
 
@@ -200,33 +247,7 @@ module XmlDocExtractor =
         | Some el ->
             el.Elements(xName "member")
             |> listMap
-                (fun mel ->
-                    { Name =
-                          mel
-                          |> getAttribute "name"
-                          |> Option.map (fun at -> at.Value)
-                          |> Option.defaultValue ""
-                      Summary =
-                          mel
-                          |> getElement "summary"
-                          |> Option.map (fun el -> el.Value)
-                      Parameters =
-                          mel.Elements(xName "param")
-                          |> listMap
-                              (fun pel ->
-                                  { Name =
-                                        pel
-                                        |> getAttribute "name"
-                                        |> Option.map (fun at -> at.Value)
-                                        |> Option.defaultValue ""
-                                    Description = pel.Value })
-                      Returns =
-                          mel
-                          |> getElement "returns"
-                          |> Option.map (fun el -> el.Value)
-                      Examples =
-                          mel.Elements(xName "example")
-                          |> listMap (fun eel -> eel.Value) })
+                (fun mel -> extractMember mel)
             |> List.map (fun m -> m.Name, m)
             |> Map.ofList
         | None -> failwith "Error"
@@ -242,10 +263,18 @@ module SourceExtractor =
         let checker =
             FSharpChecker.Create(keepAssemblyContents = true)
 
+        let options  = {
+            FSharpParsingOptions.Default with
+                SourceFiles = [| path |]
+        }
+        
         let text = load path
 
+        //checker.CompileToDynamicAssembly()
+        //let parseFile = checker.ParseFile(path, SourceText.ofString text, options) |> Async.RunSynchronously
+        
         let projOptions, errors =
-            checker.GetProjectOptionsFromScript(path, SourceText.ofString text)
+            checker.GetProjectOptionsFromScript(path, SourceText.ofString text, assumeDotNetFramework=false)
             |> Async.RunSynchronously
 
         printfn $"Errors: {errors.Length}"
@@ -272,10 +301,69 @@ module SourceExtractor =
         | _ when entity.IsFSharpRecord -> RecordDocument.Create(entity, docMembers)
         | _ when entity.IsFSharpUnion -> UnionDocument.Create(entity, docMembers)
         | _ when entity.IsClass ->
+            let doc = docMembers.TryFind entity.XmlDocSig
+
+            let createMethod (v: FSharpMemberOrFunctionOrValue) =
+                //let dm = docMembers.TryFind v.XmlDocSig
+                
+                let dm =
+                    match v.XmlDoc with
+                    | FSharpXmlDoc.FromXmlText txt ->
+                        match txt.UnprocessedLines.Length > 0 with
+                        | true ->
+                            try 
+                                let xml =
+                                    txt.UnprocessedLines
+                                    |> String.concat ""
+                                    |> fun b -> $"<member name=\"{v.DisplayName}\">{b}</member>"
+                                XmlDocExtractor.extractMember (XElement.Parse(xml))
+                                |> Some    
+                            with
+                            | _ -> None
+                        | false -> None
+                    | FSharpXmlDoc.FromXmlFile _ -> None
+                    | FSharpXmlDoc.None _ -> None
+                        
+                
+                ({
+                Name = v.DisplayName
+                Signature = v.FullType.ToString()
+                Parameters =
+                  v.CurriedParameterGroups
+                  |> listMap
+                      (fun pl ->
+                          pl
+                          |> listMap (fun p -> FunctionParameter.Create(p, dm)))
+                  |> List.concat
+                XmlDocument = dm }: MethodDocument)
+            
+            let createProperty (v: FSharpMemberOrFunctionOrValue) =
+                ({
+                Name = v.DisplayName
+                Type = v.FullType.ToString()
+                XmlDocument = docMembers.TryFind v.XmlDocSig }: PropertyDocument)
+              
+            let (methods, properties) =
+                entity.MembersFunctionsAndValues
+                |> List.ofSeq
+                |> List.fold (fun (m, p) e ->
+                    match e.IsProperty with
+                    | true -> (m, p @ [ createProperty e ])
+                    | false -> (m @ [createMethod e], p)) ([], [])
+            
+            (*
+            let xml =
+                match entity.XmlDoc with
+                | FSharpXmlDoc.FromXmlText t ->
+                    t.ToString()
+                | FSharpXmlDoc.FromXmlFile (dllName, xmlSig) -> ""
+            *)  
+            
+            
             ClassDocument.Create(
                 entity,
-                entity.NestedEntities
-                |> listMap (create docMembers),
+                properties,
+                methods,
                 docMembers
             )
         | _ when entity.IsArrayType -> failwith "todo"
@@ -286,7 +374,6 @@ module SourceExtractor =
     let extract (path: string) (docMembers: Map<string, XmlDocumentMember>) =
         let s = parseAndCheckScript path
         let assembly = s.AssemblySignature
-
         assembly.Entities
         |> List.ofSeq
         |> List.map (create docMembers)
@@ -392,8 +479,8 @@ module Linter =
                     |> Option.bind (lintXmlDocument LintSettings.Strict)
                     |> Option.defaultValue [ MissingXmlDocMember cd.DisplayName ]
 
-                let r2 =
-                    cd.Members |> List.map handler |> List.concat
+                let r2 = []
+                    //cd.Properties |> List.map handler |> List.concat
 
                 r1 @ r2
             | Member.Module md ->

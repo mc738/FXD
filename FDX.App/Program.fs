@@ -21,8 +21,11 @@ let passThru (members: Member list) (errors: Linter.LintingError list) =
 
 [<EntryPoint>]
 let main argv =
-    XmlDocExtractor.extract "C:\\Users\\44748\\Projects\\TestLibrary\\TestLibrary\\bin\\Debug\\net5.0\\TestLibrary.xml"
-    |> SourceExtractor.extract "C:\\Users\\44748\\Projects\\TestLibrary\\TestLibrary\\Library.fs"
+    // "C:\\Users\\44748\\Projects\\TestRepo\\TestRepo\\bin\\Debug\\net6.0\\TestRepo.xml"
+    // "C:\\Users\\44748\\Projects\\TestRepo\\TestRepo\\Library.fs"
+    
+    XmlDocExtractor.extract "C:\\ProjectData\\Freql\\Freql.Sqlite.xml"
+    |> SourceExtractor.extract "C:\\Users\\44748\\Projects\\Freql\\Freql.Sqlite\\Library.fs"
     |> Linter.run passThru
     |> Documents.create []
     |> Documents.render [ Documents.html "C:\\ProjectData\\Documentation\\Test\\test.html"
