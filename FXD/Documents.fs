@@ -5,9 +5,10 @@ open System.IO
 open System.Reflection.Metadata
 open FDOM.Core.Common
 open FDOM.Core.Common
+open FDOM.Core.Dsl.Article
 open FDOM.Rendering
 open FXD.Documentation
-open FDOM.Core.Dsl.Article
+open FXD.XmlDocExtractor
 
 module Documents =
 

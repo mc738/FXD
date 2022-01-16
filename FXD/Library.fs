@@ -15,7 +15,9 @@ open FSharp.Compiler.Xml
 module Common =
     let listMap<'In, 'Out> (fn: 'In -> 'Out) (s: seq<'In>) = s |> List.ofSeq |> List.map fn
 
-module Documentation =
+
+module XmlDocExtractor =
+
 
     type XmlParameter = { Name: string; Description: string }
 
@@ -25,168 +27,6 @@ module Documentation =
           Parameters: XmlParameter list
           Returns: string option
           Examples: string list }
-
-    type FunctionDocument =
-        { DisplayName: string
-          Signature: string
-          XDocSignature: string
-          XmlDocument: XmlDocumentMember option
-          Parameters: FunctionParameter list }
-
-        static member Create(entity: FSharpMemberOrFunctionOrValue, docMembers: Map<string, XmlDocumentMember>) =
-            let doc = docMembers.TryFind entity.XmlDocSig
-
-            { DisplayName = entity.DisplayName
-              Signature = entity.FullType.ToString()
-              XDocSignature = entity.XmlDocSig
-              XmlDocument = doc
-              Parameters =
-                  entity.CurriedParameterGroups
-                  |> listMap
-                      (fun pl ->
-                          pl
-                          |> listMap (fun p -> FunctionParameter.Create(p, doc)))
-                  |> List.concat }
-            |> Member.Function
-
-    and FunctionParameter =
-        { Name: string
-          Type: string
-          Document: string option }
-
-        static member Create(entity: FSharpParameter, xmlDocMember: XmlDocumentMember option) =
-            let name = entity.Name |> Option.defaultValue ""
-
-            { Name = name
-              Type = entity.Type.ToString()
-              Document =
-                  xmlDocMember
-                  |> Option.bind
-                      (fun d ->
-                          d.Parameters
-                          |> List.tryFind (fun p -> p.Name = name)
-                          |> Option.bind (fun p -> Some p.Description)) }
-
-    and UnionDocument =
-        { FullName: string
-          DisplayName: string
-          XDocSignature: string
-          XmlDocument: XmlDocumentMember option
-          Members: UnionMember list }
-
-        static member Create(entity: FSharpEntity, docMembers: Map<string, XmlDocumentMember>) =
-            let doc = docMembers.TryFind entity.XmlDocSig
-
-            { FullName = entity.FullName
-              DisplayName = entity.DisplayName
-              XDocSignature = entity.XmlDocSig
-              XmlDocument = doc
-              Members =
-                  entity.UnionCases
-                  |> listMap (fun e -> UnionMember.Create(e, docMembers)) }
-            |> Member.Union
-
-    and UnionMember =
-        { Name: string
-          Type: string
-          XmlDocument: XmlDocumentMember option }
-
-        static member Create(unionCase: FSharpUnionCase, docMembers: Map<string, XmlDocumentMember>) =
-            { Name = unionCase.Name
-              Type = unionCase.ReturnType.ToString()
-              XmlDocument = docMembers.TryFind unionCase.XmlDocSig }
-
-    and RecordDocument =
-        { FullName: string
-          DisplayName: string
-          XDocSignature: string
-          XmlDocument: XmlDocumentMember option
-          Fields: RecordField list }
-
-        static member Create(entity: FSharpEntity, docMembers: Map<string, XmlDocumentMember>) =
-            { FullName = entity.FullName
-              DisplayName = entity.DisplayName
-              XDocSignature = entity.XmlDocSig
-              XmlDocument = docMembers.TryFind entity.XmlDocSig
-              Fields =
-                  entity.FSharpFields
-                  |> List.ofSeq
-                  |> List.map (fun f -> RecordField.Create(f, docMembers)) }
-            |> Member.Record
-
-    and RecordField =
-        { Name: string
-          Type: string
-          XDocSignature: string
-          XmlDocument: XmlDocumentMember option }
-
-        static member Create(field: FSharpField, docMembers: Map<string, XmlDocumentMember>) =
-            { Name = field.Name
-              Type = field.FieldType.ToString()
-              XDocSignature = field.XmlDocSig
-              XmlDocument = docMembers.TryFind field.XmlDocSig }
-
-    and ClassDocument =
-        { FullName: string
-          DisplayName: string
-          XDocSignature: string
-          XmlDocument: XmlDocumentMember option
-          Properties: PropertyDocument list
-          Methods: MethodDocument list }
-
-        static member Create(entity: FSharpEntity, properties: PropertyDocument list, methods: MethodDocument list, docMembers: Map<string, XmlDocumentMember>) =
-            { FullName = entity.FullName
-              DisplayName = entity.DisplayName
-              XDocSignature = entity.XmlDocSig
-              XmlDocument = docMembers.TryFind entity.XmlDocSig
-              Properties = properties
-              Methods = methods }
-            |> Member.Class
-
-    and PropertyDocument = {
-        Name: string
-        Type: string
-        XmlDocument: XmlDocumentMember option
-        
-    }
-    
-    and MethodDocument = {
-        Name: string
-        Signature: string
-        Parameters: FunctionParameter list
-        XmlDocument: XmlDocumentMember option
-    }
-    
-    and ModuleDocument =
-        { FullName: string
-          DisplayName: string
-          XDocSignature: string
-          XmlDocument: XmlDocumentMember option
-          Members: Member list }
-
-        static member Create(entity: FSharpEntity, members: Member list, docMembers: Map<string, XmlDocumentMember>) =
-            { FullName = entity.FullName
-              DisplayName = entity.DisplayName
-              XDocSignature = entity.XmlDocSig
-              XmlDocument = docMembers.TryFind entity.XmlDocSig
-              Members = members }
-            |> Member.Module
-
-    and NamespaceDocument = { Members: Member list }
-
-    and [<RequireQualifiedAccess>] Member =
-        | Function of FunctionDocument
-        | Union of UnionDocument
-        | Record of RecordDocument
-        | Class of ClassDocument
-        | Module of ModuleDocument
-        | Namespace of NamespaceDocument
-
-open Documentation
-
-module XmlDocExtractor =
-
-    open Documentation
 
     [<AutoOpen>]
     module Helpers =
@@ -239,23 +79,209 @@ module XmlDocExtractor =
           Examples =
               el.Elements(xName "example")
               |> listMap (fun eel -> eel.Value) }
-    
+
     let extract path =
         let root = load path
 
         match root |> getElement "members" with
         | Some el ->
             el.Elements(xName "member")
-            |> listMap
-                (fun mel -> extractMember mel)
+            |> listMap (fun mel -> extractMember mel)
             |> List.map (fun m -> m.Name, m)
             |> Map.ofList
         | None -> failwith "Error"
+
+    let extractXmlDoc (name: string) (doc: FSharpXmlDoc) =
+        match doc with
+        | FSharpXmlDoc.FromXmlText txt ->
+            match txt.UnprocessedLines.Length > 0 with
+            | true ->
+                try
+                    let xml =
+                        txt.UnprocessedLines
+                        |> String.concat ""
+                        |> fun b -> $"<member name=\"{name}\">{b}</member>"
+
+                    extractMember (XElement.Parse(xml)) |> Some
+                with
+                | _ -> None
+            | false -> None
+        | FSharpXmlDoc.FromXmlFile _ -> None
+        | FSharpXmlDoc.None _ -> None
+
+
+module Documentation =
+
+    open XmlDocExtractor
+
+    type FunctionDocument =
+        { DisplayName: string
+          Signature: string
+          XDocSignature: string
+          XmlDocument: XmlDocumentMember option
+          Parameters: FunctionParameter list }
+
+        static member Create(entity: FSharpMemberOrFunctionOrValue) =
+            let doc =
+                extractXmlDoc entity.DisplayName entity.XmlDoc
+
+            { DisplayName = entity.DisplayName
+              Signature = entity.FullType.ToString()
+              XDocSignature = entity.XmlDocSig
+              XmlDocument = doc
+              Parameters =
+                  entity.CurriedParameterGroups
+                  |> listMap
+                      (fun pl ->
+                          pl
+                          |> listMap (fun p -> FunctionParameter.Create(p, doc)))
+                  |> List.concat }
+            |> Member.Function
+
+    and FunctionParameter =
+        { Name: string
+          Type: string
+          Document: string option }
+
+        static member Create(entity: FSharpParameter, xmlDocMember: XmlDocumentMember option) =
+            let name = entity.Name |> Option.defaultValue ""
+
+            { Name = name
+              Type = entity.Type.ToString()
+              Document =
+                  xmlDocMember
+                  |> Option.bind
+                      (fun d ->
+                          d.Parameters
+                          |> List.tryFind (fun p -> p.Name = name)
+                          |> Option.bind (fun p -> Some p.Description)) }
+
+    and UnionDocument =
+        { FullName: string
+          DisplayName: string
+          XDocSignature: string
+          XmlDocument: XmlDocumentMember option
+          Members: UnionMember list }
+
+        static member Create(entity: FSharpEntity) =
+            { FullName = entity.FullName
+              DisplayName = entity.DisplayName
+              XDocSignature = entity.XmlDocSig
+              XmlDocument = extractXmlDoc entity.DisplayName entity.XmlDoc
+              Members =
+                  entity.UnionCases
+                  |> listMap (fun e -> UnionMember.Create(e)) }
+            |> Member.Union
+
+    and UnionMember =
+        { Name: string
+          Type: string
+          XmlDocument: XmlDocumentMember option }
+
+        static member Create(unionCase: FSharpUnionCase) =
+            { Name = unionCase.Name
+              Type = unionCase.ReturnType.ToString()
+              XmlDocument = extractXmlDoc unionCase.Name unionCase.XmlDoc }
+
+    and RecordDocument =
+        { FullName: string
+          DisplayName: string
+          XDocSignature: string
+          XmlDocument: XmlDocumentMember option
+          Fields: RecordField list }
+
+        static member Create(entity: FSharpEntity) =
+            let dm =
+                extractXmlDoc entity.DisplayName entity.XmlDoc
+
+            { FullName = entity.FullName
+              DisplayName = entity.DisplayName
+              XDocSignature = entity.XmlDocSig
+              XmlDocument = extractXmlDoc entity.DisplayName entity.XmlDoc
+              Fields =
+                  entity.FSharpFields
+                  |> List.ofSeq
+                  |> List.map (fun f -> RecordField.Create(f)) }
+            |> Member.Record
+
+    and RecordField =
+        { Name: string
+          Type: string
+          XDocSignature: string
+          XmlDocument: XmlDocumentMember option }
+
+        static member Create(field: FSharpField) =
+            { Name = field.Name
+              Type = field.FieldType.ToString()
+              XDocSignature = field.XmlDocSig
+              XmlDocument = extractXmlDoc field.DisplayName field.XmlDoc }
+
+    and ClassDocument =
+        { FullName: string
+          DisplayName: string
+          XDocSignature: string
+          XmlDocument: XmlDocumentMember option
+          Properties: PropertyDocument list
+          Methods: MethodDocument list }
+
+        static member Create
+            (
+                entity: FSharpEntity,
+                properties: PropertyDocument list,
+                methods: MethodDocument list,
+                docMembers: Map<string, XmlDocumentMember>
+            ) =
+            { FullName = entity.FullName
+              DisplayName = entity.DisplayName
+              XDocSignature = entity.XmlDocSig
+              XmlDocument = docMembers.TryFind entity.XmlDocSig
+              Properties = properties
+              Methods = methods }
+            |> Member.Class
+
+    and PropertyDocument =
+        { Name: string
+          Type: string
+          XmlDocument: XmlDocumentMember option }
+
+    and MethodDocument =
+        { Name: string
+          Signature: string
+          Parameters: FunctionParameter list
+          XmlDocument: XmlDocumentMember option }
+
+    and ModuleDocument =
+        { FullName: string
+          DisplayName: string
+          XDocSignature: string
+          XmlDocument: XmlDocumentMember option
+          Members: Member list }
+
+        static member Create(entity: FSharpEntity, members: Member list) =
+            { FullName = entity.FullName
+              DisplayName = entity.DisplayName
+              XDocSignature = entity.XmlDocSig
+              XmlDocument = extractXmlDoc entity.DisplayName entity.XmlDoc
+              Members = members }
+            |> Member.Module
+
+    and NamespaceDocument = { Members: Member list }
+
+    and [<RequireQualifiedAccess>] Member =
+        | Function of FunctionDocument
+        | Union of UnionDocument
+        | Record of RecordDocument
+        | Class of ClassDocument
+        | Module of ModuleDocument
+        | Namespace of NamespaceDocument
+
+open Documentation
 
 /// Extract information from source code.
 module SourceExtractor =
 
     open Documentation
+    open XmlDocExtractor
 
     let load (path: string) = File.ReadAllText(path)
 
@@ -263,18 +289,17 @@ module SourceExtractor =
         let checker =
             FSharpChecker.Create(keepAssemblyContents = true)
 
-        let options  = {
-            FSharpParsingOptions.Default with
-                SourceFiles = [| path |]
-        }
-        
+        let options =
+            { FSharpParsingOptions.Default with
+                  SourceFiles = [| path |] }
+
         let text = load path
 
         //checker.CompileToDynamicAssembly()
         //let parseFile = checker.ParseFile(path, SourceText.ofString text, options) |> Async.RunSynchronously
-        
+
         let projOptions, errors =
-            checker.GetProjectOptionsFromScript(path, SourceText.ofString text, assumeDotNetFramework=false)
+            checker.GetProjectOptionsFromScript(path, SourceText.ofString text, assumeDotNetFramework = false)
             |> Async.RunSynchronously
 
         printfn $"Errors: {errors.Length}"
@@ -284,7 +309,7 @@ module SourceExtractor =
 
     let createFunctions (docMembers: Map<string, XmlDocumentMember>) (entity: FSharpEntity) =
         entity.MembersFunctionsAndValues
-        |> listMap (fun m -> FunctionDocument.Create(m, docMembers))
+        |> listMap (fun m -> FunctionDocument.Create(m))
 
     let rec create (docMembers: Map<string, XmlDocumentMember>) (entity: FSharpEntity) =
         match entity with
@@ -294,78 +319,53 @@ module SourceExtractor =
                 [ entity.NestedEntities
                   |> listMap (create docMembers)
                   entity.MembersFunctionsAndValues
-                  |> listMap (fun m -> FunctionDocument.Create(m, docMembers)) ]
-                |> List.concat,
-                docMembers
+                  |> listMap (fun m -> FunctionDocument.Create(m)) ]
+                |> List.concat
             )
-        | _ when entity.IsFSharpRecord -> RecordDocument.Create(entity, docMembers)
-        | _ when entity.IsFSharpUnion -> UnionDocument.Create(entity, docMembers)
+        | _ when entity.IsFSharpRecord -> RecordDocument.Create(entity)
+        | _ when entity.IsFSharpUnion -> UnionDocument.Create(entity)
         | _ when entity.IsClass ->
             let doc = docMembers.TryFind entity.XmlDocSig
 
             let createMethod (v: FSharpMemberOrFunctionOrValue) =
-                //let dm = docMembers.TryFind v.XmlDocSig
-                
-                let dm =
-                    match v.XmlDoc with
-                    | FSharpXmlDoc.FromXmlText txt ->
-                        match txt.UnprocessedLines.Length > 0 with
-                        | true ->
-                            try 
-                                let xml =
-                                    txt.UnprocessedLines
-                                    |> String.concat ""
-                                    |> fun b -> $"<member name=\"{v.DisplayName}\">{b}</member>"
-                                XmlDocExtractor.extractMember (XElement.Parse(xml))
-                                |> Some    
-                            with
-                            | _ -> None
-                        | false -> None
-                    | FSharpXmlDoc.FromXmlFile _ -> None
-                    | FSharpXmlDoc.None _ -> None
-                        
-                
-                ({
-                Name = v.DisplayName
-                Signature = v.FullType.ToString()
-                Parameters =
-                  v.CurriedParameterGroups
-                  |> listMap
-                      (fun pl ->
-                          pl
-                          |> listMap (fun p -> FunctionParameter.Create(p, dm)))
-                  |> List.concat
-                XmlDocument = dm }: MethodDocument)
-            
+                let dm = extractXmlDoc v.DisplayName v.XmlDoc
+
+                ({ Name = v.DisplayName
+                   Signature = v.FullType.ToString()
+                   Parameters =
+                       v.CurriedParameterGroups
+                       |> listMap
+                           (fun pl ->
+                               pl
+                               |> listMap (fun p -> FunctionParameter.Create(p, dm)))
+                       |> List.concat
+                   XmlDocument = extractXmlDoc v.DisplayName v.XmlDoc }: MethodDocument)
+
             let createProperty (v: FSharpMemberOrFunctionOrValue) =
-                ({
-                Name = v.DisplayName
-                Type = v.FullType.ToString()
-                XmlDocument = docMembers.TryFind v.XmlDocSig }: PropertyDocument)
-              
+                ({ Name = v.DisplayName
+                   Type = v.FullType.ToString()
+                   XmlDocument = extractXmlDoc v.DisplayName v.XmlDoc }: PropertyDocument)
+
             let (methods, properties) =
                 entity.MembersFunctionsAndValues
                 |> List.ofSeq
-                |> List.fold (fun (m, p) e ->
-                    match e.IsProperty with
-                    | true -> (m, p @ [ createProperty e ])
-                    | false -> (m @ [createMethod e], p)) ([], [])
-            
+                |> List.fold
+                    (fun (m, p) e ->
+                        match e.IsProperty with
+                        | true -> (m, p @ [ createProperty e ])
+                        | false -> (m @ [ createMethod e ], p))
+                    ([], [])
+
             (*
             let xml =
                 match entity.XmlDoc with
                 | FSharpXmlDoc.FromXmlText t ->
                     t.ToString()
                 | FSharpXmlDoc.FromXmlFile (dllName, xmlSig) -> ""
-            *)  
-            
-            
-            ClassDocument.Create(
-                entity,
-                properties,
-                methods,
-                docMembers
-            )
+            *)
+
+
+            ClassDocument.Create(entity, properties, methods, docMembers)
         | _ when entity.IsArrayType -> failwith "todo"
         | _ when entity.IsNamespace -> failwith "todo"
         //| _ when
@@ -374,6 +374,7 @@ module SourceExtractor =
     let extract (path: string) (docMembers: Map<string, XmlDocumentMember>) =
         let s = parseAndCheckScript path
         let assembly = s.AssemblySignature
+
         assembly.Entities
         |> List.ofSeq
         |> List.map (create docMembers)
@@ -382,6 +383,7 @@ module SourceExtractor =
 module Linter =
 
     open Documentation
+    open XmlDocExtractor
 
     type LintingError =
         | MissingXmlDocMember of string
@@ -480,7 +482,6 @@ module Linter =
                     |> Option.defaultValue [ MissingXmlDocMember cd.DisplayName ]
 
                 let r2 = []
-                    //cd.Properties |> List.map handler |> List.concat
 
                 r1 @ r2
             | Member.Module md ->
