@@ -323,14 +323,7 @@ module SourceExtractor =
         let checker =
             FSharpChecker.Create(keepAssemblyContents = true)
 
-        let options =
-            { FSharpParsingOptions.Default with
-                  SourceFiles = [| path |] }
-
         let text = load path
-
-        //checker.CompileToDynamicAssembly()
-        //let parseFile = checker.ParseFile(path, SourceText.ofString text, options) |> Async.RunSynchronously
 
         let projOptions, errors =
             checker.GetProjectOptionsFromScript(path, SourceText.ofString text, assumeDotNetFramework = false)

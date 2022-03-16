@@ -1,0 +1,100 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test report</title>
+    <link href="./css/style.css" rel="stylesheet">
+    <script src="https://kit.fontawesome.com/f5ae0cbcfc.js" crossorigin="anonymous"></script>
+</head>
+<body>
+<nav>
+    <p>Nav</p>
+</nav>
+<main>
+    <section id="index">
+        
+    </section>
+    <section id="body">
+        <section id="content">
+            <h1>Test report</h1>
+            {{#testRuns}}
+                <details open>
+                    <summary>
+                        <div><span><i class="{{resultStyle}}"></i></span> Test run <code>{{testRunName}}</code></div>
+                        <div><small>{{testTime}}</small></div>
+                    </summary>
+                    <div class="content">
+                        <div style="display: flex; width: 100%;">
+                            <div style="width: 25%"><small>Run deployment root</small></div>
+                            <div style="width: 75%"><p>{{runDeploymentRoot}}</p></div>
+                        </div>
+                        <div style="display: flex; width: 100%;">
+                            <div style="width: 25%"><small>Run id</small></div>
+                            <div style="width: 75%"><p>{{runId}}</p></div>
+                        </div>
+                        <div style="display: flex; width: 100%;">
+                            <div style="width: 25%"><small>Created</small></div>
+                            <div style="width: 75%"><p>{{created}}</p></div>
+                        </div>
+                        <div style="display: flex; width: 100%;">
+                            <div style="width: 25%"><small>Queued</small></div>
+                            <div style="width: 75%"><p>{{queued}}</p></div>
+                        </div>
+                        <div style="display: flex; width: 100%;">
+                            <div style="width: 25%"><small>Start</small></div>
+                            <div style="width: 75%"><p>{{start}}</p></div>
+                        </div>
+                        <div style="display: flex; width: 100%;">
+                            <div style="width: 25%"><small>Finish</small></div>
+                            <div style="width: 75%"><p>{{finish}}</p></div>
+                        </div>
+                        {{#tests}}
+                            <details>
+                                <summary>
+                                    <div>
+                                        <span><i class="{{testResultClass}}"></i></span> {{testName}}
+                                    </div>
+                                </summary>
+                                <div class="content">
+                                    <div style="display: flex; width: 100%;">
+                                        <div style="width: 25%;"><small>Duration</small></div>
+                                        <div style="width: 75%"><p>{{duration}}</p></div>
+                                    </div>
+                                    <div style="display: flex; width: 100%;">
+                                        <div style="width: 25%;"><small>Test id</small></div>
+                                        <div style="width: 75%"><p>{{testId}}</p></div>
+                                    </div>
+                                    <div style="display: flex; width: 100%;">
+                                        <div style="width: 25%;"><small>Execution id</small></div>
+                                        <div style="width: 75%"><p>{{executionId}}</p></div>
+                                    </div>
+                                    <div style="display: flex; width: 100%;">
+                                        <div style="width: 25%;"><small>Codebase</small></div>
+                                        <div style="width: 75%"><p>{{codebase}}</p></div>
+                                    </div>
+                                    <div style="display: flex; width: 100%;">
+                                        <div style="width: 25%;"><small>Storage</small></div>
+                                        <div style="width: 75%"><p>{{storage}}</p></div>
+                                    </div>
+                                    <div style="display: flex; width: 100%;">
+                                        <div style="width: 25%;"><small>Adapter</small></div>
+                                        <div style="width: 75%"><p>{{adapter}}</p></div>
+                                    </div>
+                                    <div style="display: flex; width: 100%;">
+                                        <div style="width: 25%;"><small>Class name</small></div>
+                                        <div style="width: 75%"><p>{{className}}</p></div>
+                                    </div>
+                                </div>
+                            </details>
+                        {{/tests}}
+                    </div>
+                </details>
+            {{/testRuns}}
+        </section>
+    </section>
+</main>
+</body>
+</html>
+{{end}}

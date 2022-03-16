@@ -608,12 +608,9 @@ module Pipeline =
                             | Member.Record rd -> ()
                             | Member.Union ud -> ())
                     |> ignore
-
-
-                    ()
                 | CreateDirectory cda ->
                     printfn $"Creating directory `{cda.Path}`."
-
+                    
                     Directory.CreateDirectory(Path.Combine(ctx.OutputRoot, cda.Path))
                     |> ignore
                 | CopyFile cfa ->
