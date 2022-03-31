@@ -10,6 +10,7 @@
         <Compile Include="Library.fs" />
         <Compile Include="Documents.fs" />
         <Compile Include="Reports.fs" />
+        <Compile Include="DocumentGenerator.fs" />
     </ItemGroup>
 
     <ItemGroup>

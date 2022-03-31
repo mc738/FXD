@@ -5,6 +5,7 @@ open System.Configuration
 open System.IO
 open System.Text.Json
 open System.Text.Json.Serialization
+open FDOM.Core.Common
 open FDOM.Core.Parsing
 open FDOM.Rendering
 open FXD
@@ -48,6 +49,8 @@ module Templating =
     let createClassValues (extraValues: (string * Mustache.Value) list) (cd: ClassDocument) =
         let (summary, examples, returns) = handleXmlDoc cd.XmlDocument
 
+        // TODO add indexes.
+        
         [ "id", Mustache.Value.Scalar cd.Id
           "summary", Mustache.Value.Scalar(summary |> Option.defaultValue "")
           "name", Mustache.Value.Scalar cd.DisplayName
@@ -99,7 +102,7 @@ module Templating =
           ) ]
         @ extraValues
         |> Map.ofList
-        
+
     let createClassData (cd: ClassDocument) =
         createClassValues [] cd |> Mustache.Value.Object
 
@@ -231,7 +234,9 @@ module Pipeline =
           [<JsonPropertyName("codeDocuments")>]
           CodeDocuments: CodeDocumentConfiguration
           [<JsonPropertyName("resources")>]
-          Resources: ResourceConfiguration seq }
+          Resources: ResourceConfiguration seq
+          [<JsonPropertyName("indexes")>]
+          Indexes: IndexItem seq }
 
     and [<CLIMutable>] Arg =
         { [<JsonPropertyName("name")>]
@@ -295,12 +300,21 @@ module Pipeline =
           [<JsonPropertyName("value")>]
           Value: string }
 
+    and [<CLIMutable>] IndexItem =
+        { [<JsonPropertyName("sectionName")>]
+          SectionName: string
+          [<JsonPropertyName("type")>]
+          Type: string
+          [<JsonPropertyName("pages")>]
+          Pages: string seq }
+
     type Context =
         { Name: string
           Templates: TemplateCache
           Actions: Action list
           RootPath: string
-          OutputRoot: string }
+          OutputRoot: string
+          Indexes: IndexDefinition list }
 
     and Action =
         | GenerateCodeDocument of GenerateCodeDocumentAction
@@ -362,6 +376,20 @@ module Pipeline =
                 tc.Values
             |> fun r -> { tc with Values = r }
 
+    and IndexDefinition =
+        { SectionName: string
+          Type: IndexSectionType
+          Pages: IndexPage list }
+
+    and [<RequireQualifiedAccess>] IndexSectionType =
+        | Pages
+        | CodeDocuments
+
+    and IndexPage = {
+        Name: string
+        Title: string
+    }
+    
     let passThru (members: Member list) (errors: Linter.LintingError list) =
         Console.ForegroundColor <- ConsoleColor.Magenta
 
@@ -379,20 +407,11 @@ module Pipeline =
             (rootPath: string)
             (outputPath: string)
             (action: GeneratePageAction)
+            (indexes: IndexDefinition list)
             =
             match templates.Values.TryFind action.Template with
             | Some template ->
-                let values =
-                    ({ Values =
-                           [ "title", Mustache.Value.Scalar action.Title
-                             "titleSlug", Mustache.Value.Scalar action.TitleSlug
-                             "now", Mustache.Value.Scalar(DateTime.Now.ToString("dd MMMM yyyy HH:mm:ss")) ]
-                           @ (action.Metadata
-                              |> Map.toList
-                              |> List.map (fun (k, v) -> k, Mustache.Value.Scalar v))
-                           |> Map.ofList
-                       Partials = Map.empty }: Mustache.Data)
-
+                
                 let blocks =
                     Parser
                         .ParseLines(
@@ -415,6 +434,56 @@ module Pipeline =
                               Path = "/home/max/Data/FDOM_Tests/css/style.css"
                               VirtualPath = "css/style.css"
                               Type = "stylesheet" } ] }
+
+
+                (*
+                // Create the indexes
+                let pageIndexes =
+                    Html.getIndexes doc
+                    |> List.map
+                        (fun i ->
+                            [ "index_slug", i |> slugifyName |> Mustache.Value.Scalar
+                              "index_title", i |> Mustache.Value.Scalar ]
+                            |> Map.ofList
+                            |> Mustache.Value.Object)
+                    |> Mustache.Value.Array
+                *)
+                
+                // Merge page indexes with generate indexes.                
+                let indexesHtml =
+                    indexes
+                    |> List.map (fun i ->
+                        let pagesIndexHtml =
+                            i.Pages
+                            |> List.map (fun pi ->
+                                match pi.Name with
+                                | _ when String.Equals(pi.Name, action.TitleSlug) ->
+                                    // Generate the open index.
+                                    let content =
+                                        Html.getIndexes doc
+                                        |> List.map (fun i -> $"""<a href="#{i |> slugifyName}">{i}</a>""")
+                                        |> String.concat ""
+                                        
+                                    $"""<li class="open"><h3>{pi.Title}</h3>{content}</li>"""
+                                | _ -> $"""<li><a href="./{pi.Name}.html">{pi.Title}</a></li>""")
+                            |> String.concat ""
+                        
+                        $"""<div class="index-section"><h2>{i.SectionName}</h2><ul>{pagesIndexHtml}</ul></div>""")
+                    |> String.concat ""
+                
+                
+                
+                let values =
+                    ({ Values =
+                           [ "title", Mustache.Value.Scalar action.Title
+                             "titleSlug", Mustache.Value.Scalar action.TitleSlug
+                             "now", Mustache.Value.Scalar(DateTime.Now.ToString("dd MMMM yyyy HH:mm:ss"))
+                             "index", Mustache.Value.Scalar indexesHtml ]
+                           @ (action.Metadata
+                              |> Map.toList
+                              |> List.map (fun (k, v) -> k, Mustache.Value.Scalar v))
+                           |> Map.ofList
+                       Partials = Map.empty }: Mustache.Data)
 
                 Html.renderFromParsedTemplate template values [] [] doc
                 |> fun r -> File.WriteAllText(outputPath, r)
@@ -439,7 +508,13 @@ module Pipeline =
             paths
             |> List.map (fun d -> CreateDirectory { Path = d })
 
-        let createPageActions (args: Map<string, string>) (globalMetadata: Map<string, string>) (rootPath: string) (cfg: Configuration) (acc: Action list) =
+        let createPageActions
+            (args: Map<string, string>)
+            (globalMetadata: Map<string, string>)
+            (rootPath: string)
+            (cfg: Configuration)
+            (acc: Action list)
+            =
             cfg.Pages
             |> List.ofSeq
             |> List.fold
@@ -454,7 +529,7 @@ module Pipeline =
                               Template = templatePath
                               Output = substituteValue args p.Output
                               Title = substituteValue args p.Title
-                              TitleSlug = substituteValue args p.Template
+                              TitleSlug = substituteValue args p.TitleSlug
                               Metadata = createMetadata args globalMetadata p.Metadata }
 
                     a @ [ gp ], tc.LoadAndAdd templatePath)
@@ -534,12 +609,10 @@ module Pipeline =
 
             acc @ na, ntc
 
-
         let createResourceActions (cfg: Configuration) =
             cfg.Resources
             |> List.ofSeq
             |> List.map (fun rc -> CopyFile { From = rc.Path; To = rc.outputPath })
-
 
         let createContext (path: string) (outputRoot: string) (args: Map<string, string>) (cfg: Configuration) =
             let argsV =
@@ -552,7 +625,8 @@ module Pipeline =
                         | None -> acc.Add(a.Name, a.Default))
                     Map.empty
 
-            let globalMetadata = cfg.Metadata |> createMetadata argsV Map.empty
+            let globalMetadata =
+                cfg.Metadata |> createMetadata argsV Map.empty
 
             let (actions, templates) =
                 cfg.Directories
@@ -561,28 +635,71 @@ module Pipeline =
                 |> createPageActions argsV globalMetadata path cfg
                 |> createCodeDocumentActions globalMetadata argsV path cfg
 
+            let indexes =
+                cfg.Indexes
+                |> List.ofSeq
+                |> List.map
+                    (fun i ->
+                        let t = 
+                           match i.Type.ToLower() with
+                           | "pages" -> IndexSectionType.Pages
+                           | "codedocuments" -> IndexSectionType.CodeDocuments
+                           | _ -> failwith $"Unknown index section type: `{i.SectionName}`"
+                        
+                        ({ SectionName = i.SectionName
+                           Type = t
+                           Pages =
+                               i.Pages
+                               |> List.ofSeq
+                               |> List.map (fun pi ->
+                                   ({
+                                   Name = pi
+                                   Title =
+                                       match t with
+                                       | IndexSectionType.Pages ->
+                                           cfg.Pages
+                                           |> Seq.tryFind (fun p -> p.Name = pi)
+                                           |> Option.bind (fun pc -> Some pc.Title)
+                                           |> Option.defaultWith (fun _ -> failwith "Missing page.")
+                                       | IndexSectionType.CodeDocuments ->
+                                           cfg.CodeDocuments.Sources
+                                           |> Seq.tryFind (fun s -> s.Name = pi)
+                                           |> Option.bind (fun pi -> Some pi.Name)
+                                           |> Option.defaultWith (fun _ -> failwith "Missing code doc.")
+                               }: IndexPage)) }: IndexDefinition))
+
             ({ Name = cfg.Name
                Templates = templates
                Actions = actions @ createResourceActions cfg
                RootPath = path
-               OutputRoot = outputRoot }: Context)
+               OutputRoot = outputRoot
+               Indexes = indexes }: Context)
 
     let load (path: string) (outputRoot: string) (args: Map<string, string>) =
-        File.ReadAllText
-        <| Path.Combine(path, "fxd.json")
+        File.ReadAllText <| Path.Combine(path, "fxd.json")
         |> JsonSerializer.Deserialize<Configuration>
         |> Internal.createContext path outputRoot args
 
     let run (ctx: Context) =
+
+        // TODO create indexes.
+        // 1. Add indexes to config
+        // 2. Create "general" indexes (i.e. unexpanded)
+        // 3. For each page, if indexed, replace
+        
         ctx.Actions
         |> List.iter
             (fun a ->
                 match a with
                 | GeneratePage gpa ->
-                    Internal.generatePage ctx.Templates ctx.RootPath (Path.Combine(ctx.OutputRoot, gpa.Output)) gpa
+                    Internal.generatePage ctx.Templates ctx.RootPath (Path.Combine(ctx.OutputRoot, gpa.Output)) gpa ctx.Indexes
                     |> fun r -> printfn $"*** {r}"
                 | GenerateCodeDocument gcda ->
                     // Extract the source data.
+                    
+                    // TODO extract top level data, then dig down.
+                    // Not sure exactly how this will work. 
+                    
                     SourceExtractor.extract gcda.Source
                     |> List.map
                         (fun m ->
@@ -591,15 +708,18 @@ module Pipeline =
                                 match ctx.Templates.Values.TryFind gcda.ClassTemplate with
                                 | Some t ->
                                     let metadata =
-                                       gcda.Metadata
-                                       |> Map.toList
-                                       |> List.map (fun (k, v) -> k, Mustache.Value.Scalar v)
-                                    
+                                        gcda.Metadata
+                                        |> Map.toList
+                                        |> List.map (fun (k, v) -> k, Mustache.Value.Scalar v)
+
                                     Templating.createClassValues metadata cd
                                     |> fun v -> ({ Values = v; Partials = Map.empty }: Mustache.Data)
                                     |> fun d -> Mustache.replace d true t
                                     |> fun r ->
-                                        File.WriteAllText(Path.Combine(ctx.OutputRoot, gcda.DirectoryName, $"{cd.Id}.html"), r)
+                                        File.WriteAllText(
+                                            Path.Combine(ctx.OutputRoot, $"{cd.Id}.html"),
+                                            r
+                                        )
                                 | None -> ()
                                 |> ignore
                             | Member.Function fd -> ()
@@ -610,7 +730,7 @@ module Pipeline =
                     |> ignore
                 | CreateDirectory cda ->
                     printfn $"Creating directory `{cda.Path}`."
-                    
+
                     Directory.CreateDirectory(Path.Combine(ctx.OutputRoot, cda.Path))
                     |> ignore
                 | CopyFile cfa ->

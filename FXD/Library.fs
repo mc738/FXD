@@ -3,6 +3,7 @@
 open System
 open System.IO
 open System.Reflection.Metadata
+open System.Text.RegularExpressions
 open System.Xml
 open System.Xml.Linq
 open System.Xml.Linq
@@ -14,12 +15,12 @@ open FSharp.Compiler.Xml
 [<AutoOpen>]
 module Common =
     let listMap<'In, 'Out> (fn: 'In -> 'Out) (s: seq<'In>) = s |> List.ofSeq |> List.map fn
-       
+
     let displayContext =
         FSharpDisplayContext.Empty
         |> fun ctx -> ctx.WithSuffixGenericParameters()
         |> fun ctx -> ctx.WithShortTypeNames true
-    
+
     let slugifyName (name: string) =
         name
         |> Seq.fold
@@ -32,10 +33,7 @@ module Common =
             []
         |> fun c -> String.Join("", c)
 
-
-
 module XmlDocExtractor =
-
 
     type XmlParameter = { Name: string; Description: string }
 
@@ -134,17 +132,19 @@ module Documentation =
     type FunctionDocument =
         { Id: string
           DisplayName: string
+          Namespace: string
           Signature: string
           XDocSignature: string
           XmlDocument: XmlDocumentMember option
           Parameters: FunctionParameter list }
 
-        static member Create(entity: FSharpMemberOrFunctionOrValue) =
+        static member Create(entity: FSharpMemberOrFunctionOrValue, ns: string) =
             let doc =
                 extractXmlDoc entity.DisplayName entity.XmlDoc
 
-            { Id = slugifyName entity.FullName 
+            { Id = slugifyName entity.FullName
               DisplayName = entity.DisplayName
+              Namespace = ns
               Signature = entity.FullType.Format displayContext
               XDocSignature = entity.XmlDocSig
               XmlDocument = doc
@@ -181,6 +181,7 @@ module Documentation =
         { Id: string
           FullName: string
           DisplayName: string
+          Namespace: string
           XDocSignature: string
           XmlDocument: XmlDocumentMember option
           Members: UnionMember list }
@@ -189,6 +190,7 @@ module Documentation =
             { Id = slugifyName entity.FullName
               FullName = entity.FullName
               DisplayName = entity.DisplayName
+              Namespace = entity.Namespace |> Option.defaultValue ""
               XDocSignature = entity.XmlDocSig
               XmlDocument = extractXmlDoc entity.DisplayName entity.XmlDoc
               Members =
@@ -203,7 +205,7 @@ module Documentation =
           XmlDocument: XmlDocumentMember option }
 
         static member Create(unionCase: FSharpUnionCase) =
-            { Id = slugifyName unionCase.FullName 
+            { Id = slugifyName unionCase.FullName
               Name = unionCase.Name
               Type = unionCase.ReturnType.Format displayContext
               XmlDocument = extractXmlDoc unionCase.Name unionCase.XmlDoc }
@@ -212,6 +214,7 @@ module Documentation =
         { Id: string
           FullName: string
           DisplayName: string
+          Namespace: string
           XDocSignature: string
           XmlDocument: XmlDocumentMember option
           Fields: RecordField list }
@@ -220,9 +223,10 @@ module Documentation =
             let dm =
                 extractXmlDoc entity.DisplayName entity.XmlDoc
 
-            { Id = slugifyName entity.FullName 
+            { Id = slugifyName entity.FullName
               FullName = entity.FullName
               DisplayName = entity.DisplayName
+              Namespace = entity.Namespace |> Option.defaultValue ""
               XDocSignature = entity.XmlDocSig
               XmlDocument = extractXmlDoc entity.DisplayName entity.XmlDoc
               Fields =
@@ -250,19 +254,16 @@ module Documentation =
           FullName: string
           DisplayName: string
           XDocSignature: string
+          Namespace: string
           XmlDocument: XmlDocumentMember option
           Properties: PropertyDocument list
           Methods: MethodDocument list }
 
-        static member Create
-            (
-                entity: FSharpEntity,
-                properties: PropertyDocument list,
-                methods: MethodDocument list
-            ) =
-            { Id = slugifyName entity.FullName 
+        static member Create(entity: FSharpEntity, properties: PropertyDocument list, methods: MethodDocument list) =
+            { Id = slugifyName entity.FullName
               FullName = entity.FullName
               DisplayName = entity.DisplayName
+              Namespace = entity.Namespace |> Option.defaultValue ""
               XDocSignature = entity.XmlDocSig
               XmlDocument = extractXmlDoc entity.DisplayName entity.XmlDoc
               Properties = properties
@@ -276,7 +277,7 @@ module Documentation =
           XmlDocument: XmlDocumentMember option }
 
     and MethodDocument =
-        { Id: string 
+        { Id: string
           Name: string
           Signature: string
           Parameters: FunctionParameter list
@@ -285,6 +286,7 @@ module Documentation =
     and ModuleDocument =
         { Id: string
           FullName: string
+          Namespace: string
           DisplayName: string
           XDocSignature: string
           XmlDocument: XmlDocumentMember option
@@ -293,6 +295,7 @@ module Documentation =
         static member Create(entity: FSharpEntity, members: Member list) =
             { Id = slugifyName entity.FullName
               FullName = entity.FullName
+              Namespace = entity.Namespace |> Option.defaultValue ""
               DisplayName = entity.DisplayName
               XDocSignature = entity.XmlDocSig
               XmlDocument = extractXmlDoc entity.DisplayName entity.XmlDoc
@@ -301,6 +304,8 @@ module Documentation =
 
     and NamespaceDocument = { Members: Member list }
 
+    and AbbreviatedDocument = { Type: string; Namespace: string }
+
     and [<RequireQualifiedAccess>] Member =
         | Function of FunctionDocument
         | Union of UnionDocument
@@ -308,6 +313,28 @@ module Documentation =
         | Class of ClassDocument
         | Module of ModuleDocument
         | Namespace of NamespaceDocument
+        | Abbreviation of AbbreviatedDocument
+
+        member m.GetNamespace() =
+            match m with
+            | Function f -> f.Namespace
+            | Union u -> u.Namespace
+            | Record r -> r.Namespace
+            | Class c -> c.Namespace
+            | Module m -> m.Namespace
+            | Namespace n -> failwith "TODO: implement."
+            | Abbreviation a -> a.Namespace
+
+        member m.MatchName(regex: string) =
+            match m with
+            | Function f -> f.DisplayName
+            | Union u -> u.FullName
+            | Record r -> r.FullName
+            | Class c -> c.FullName
+            | Module m -> m.FullName
+            | Namespace n -> failwith "TODO: implement."
+            | Abbreviation a -> ""
+            |> fun v -> Regex.IsMatch(v, regex)
 
 open Documentation
 
@@ -336,17 +363,16 @@ module SourceExtractor =
 
     let createFunctions (docMembers: Map<string, XmlDocumentMember>) (entity: FSharpEntity) =
         entity.MembersFunctionsAndValues
-        |> listMap (fun m -> FunctionDocument.Create(m))
+        |> listMap (fun m -> FunctionDocument.Create(m, entity.Namespace |> Option.defaultValue ""))
 
     let rec create (entity: FSharpEntity) =
         match entity with
         | _ when entity.IsFSharpModule ->
             ModuleDocument.Create(
                 entity,
-                [ entity.NestedEntities
-                  |> listMap create
+                [ entity.NestedEntities |> listMap create
                   entity.MembersFunctionsAndValues
-                  |> listMap (fun m -> FunctionDocument.Create(m)) ]
+                  |> listMap (fun m -> FunctionDocument.Create(m, entity.Namespace |> Option.defaultValue "")) ]
                 |> List.concat
             )
         | _ when entity.IsFSharpRecord -> RecordDocument.Create(entity)
@@ -382,9 +408,15 @@ module SourceExtractor =
                         | true -> (m, p @ [ createProperty e ])
                         | false -> (m @ [ createMethod e ], p))
                     ([], [])
+
             ClassDocument.Create(entity, properties, methods)
         | _ when entity.IsArrayType -> failwith "todo"
         | _ when entity.IsNamespace -> failwith "todo"
+        | _ when entity.IsFSharpAbbreviation ->
+            // TODO handle better.
+            ({ Type = entity.AbbreviatedType.ToString()
+               Namespace = entity.Namespace |> Option.defaultValue "" }: AbbreviatedDocument)
+            |> Member.Abbreviation
         //| _ when
         | _ -> failwith "???"
 
@@ -395,6 +427,19 @@ module SourceExtractor =
         assembly.Entities
         |> List.ofSeq
         |> List.map (create)
+
+    let extractMultiple (paths: string list) (filterRegex: string) =
+        paths
+        |> List.map (fun p -> extract p)
+        |> List.concat
+        |> List.choose
+            (fun m ->
+                match m.MatchName filterRegex |> not with
+                | true -> Some m
+                | false -> None)
+        |> List.groupBy (fun r -> r.GetNamespace())
+        |> Map.ofList
+
 
 [<RequireQualifiedAccess>]
 module Linter =
@@ -512,5 +557,6 @@ module Linter =
 
                 r1 @ r2
             | Member.Namespace nd -> nd.Members |> List.map handler |> List.concat
+            | Member.Abbreviation ad -> []
 
         errorsHandler members (members |> List.map handler |> List.concat)

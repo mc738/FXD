@@ -107,10 +107,32 @@ let main argv =
     // "C:\\Users\\44748\\Projects\\TestRepo\\TestRepo\\bin\\Debug\\net6.0\\TestRepo.xml"
     // "C:\\Users\\44748\\Projects\\TestRepo\\TestRepo\\Library.fs"
 
+    let paths = [ "C:\\Users\\44748\\Projects\\Freql\\Freql.Sqlite\\Library.fs"
+                  "C:\\Users\\44748\\Projects\\Freql\\Freql.MySql\\Library.fs" ]
+    
+    let peepsPaths =
+        [
+            "C:\\Users\\44748\\Projects\\Peeps\\Peeps\\Core.fs"
+            "C:\\Users\\44748\\Projects\\Peeps\\Peeps\\Logger.fs"
+            "C:\\Users\\44748\\Projects\\Peeps\\Peeps\\Store.fs"
+            "C:\\Users\\44748\\Projects\\Peeps\\Peeps\\Extensions.fs"
+            "C:\\Users\\44748\\Projects\\Peeps\\Peeps\\Actions.fs"
+        ]
+    
+    let ignoreRegex = "QueryHelpers"
+    
+    let r =
+        SourceExtractor.extractMultiple peepsPaths "QueryHelpers|Internal"
 
-    TestReport.generate "C:\\ProjectData\\Misc\\example_test_result.xml" "C:\Users\\44748\\Projects\\FXD\\Templates\\test_report.mustache" "C:\\ProjectData\\test_docs\\test_report.html"
-    
-    
+    printfn $"{r}"
+
+
+    TestReport.generate
+        "C:\\ProjectData\\Misc\\example_test_result.xml"
+        "C:\Users\\44748\\Projects\\FXD\\Templates\\test_report.mustache"
+        "C:\\ProjectData\\test_docs\\test_report.html"
+
+
     let testRun =
         Reports.TestRunReport.generate "C:\\ProjectData\\Misc\\example_test_result.xml"
     //|> ignore
