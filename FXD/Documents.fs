@@ -24,6 +24,7 @@ module Templating =
                 | _ when Char.IsLetterOrDigit c -> acc @ [ Char.ToLower c ]
                 | _ when c = ' ' -> acc @ [ '_' ]
                 | _ when c = '-' -> acc @ [ c ]
+                | _ when c = '.' -> acc @ [ '-' ]
                 | _ -> acc)
             []
         |> fun c -> String.Join("", c)
