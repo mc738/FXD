@@ -1,0 +1,43 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{doc_name}}</title>
+    <link href="../css/main.css" rel="stylesheet">
+    <script src="{{fa_url}}" crossorigin="anonymous"></script>
+</head>
+<body>
+<nav>
+    <p>Nav</p>
+</nav>
+<main>
+    <section id="index">
+        <div class="index-title">
+            <div class="logo">
+                <span><i class="fas fa-book"></i></span>
+                <h1>{{title}}</h1>
+            </div>
+            <label>
+                <input class="search-input" type="text" placeholder="Search...">
+            </label>
+        </div>
+        {{&index}}
+    </section>
+    <section id="body">
+        <section id="content">
+            <div class="page-header">
+                <div class="page-title">
+                    <p>
+                        <a href="#"><span><i class="fas fa-home"></i></span></a> &GreaterGreater; {{name}}
+                    </p>
+                </div>
+            </div>
+            {{&content}}
+        </section>
+    </section>
+</main>
+</body>
+</html>
+{{end}}

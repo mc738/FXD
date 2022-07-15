@@ -1,22 +1,14 @@
 // Learn more about F# at http://docs.microsoft.com/dotnet/fsharp
 
-open System
 open System.IO
-open System.Reflection.Metadata
 open System.Text.Json
-open System.Text.RegularExpressions
 open FXD
-open FXD
-open FXD.Documentation
-open FXD.Reports
-open Fluff.Core
-open FXD.XmlDocExtractor
 
+(*
 module NewStd =
 
     let createMethodData (m: MethodDocument) =
-        let (summary, examples, returns) =
-            Templating.handleXmlDoc m.XmlDocument
+        let (summary, examples, returns) = Templating.handleXmlDoc m.XmlDocument
 
         [ "id", Mustache.Value.Scalar m.Id
           "name", Mustache.Value.Scalar m.Name
@@ -40,8 +32,7 @@ module NewStd =
         |> Mustache.Value.Object
 
     let createPropertyData (p: PropertyDocument) =
-        let (summary, examples, returns) =
-            Templating.handleXmlDoc p.XmlDocument
+        let (summary, examples, returns) = Templating.handleXmlDoc p.XmlDocument
 
         [ "id", Mustache.Value.Scalar p.Id
           "name", Mustache.Value.Scalar p.Name
@@ -72,8 +63,7 @@ module NewStd =
             |> Some
 
     let createClassData (c: ClassDocument) =
-        let (summary, examples, returns) =
-            Templating.handleXmlDoc c.XmlDocument
+        let (summary, examples, returns) = Templating.handleXmlDoc c.XmlDocument
 
         [ "id", Mustache.Value.Scalar c.Id
           "name", Mustache.Value.Scalar c.DisplayName
@@ -88,8 +78,7 @@ module NewStd =
         |> Mustache.Value.Object
 
     let createRecordData (r: RecordDocument) =
-        let (summary, examples, returns) =
-            Templating.handleXmlDoc r.XmlDocument
+        let (summary, examples, returns) = Templating.handleXmlDoc r.XmlDocument
 
         [ "id", Mustache.Value.Scalar r.Id
           "name", Mustache.Value.Scalar r.DisplayName
@@ -112,8 +101,7 @@ module NewStd =
         |> Mustache.Value.Object
 
     let createUnionData (u: UnionDocument) =
-        let (summary, examples, returns) =
-            Templating.handleXmlDoc u.XmlDocument
+        let (summary, examples, returns) = Templating.handleXmlDoc u.XmlDocument
 
         [ "id", Mustache.Value.Scalar u.Id
           "name", Mustache.Value.Scalar u.DisplayName
@@ -143,8 +131,7 @@ module NewStd =
         |> Mustache.Value.Object
 
     let createFunctionData (f: FunctionDocument) =
-        let (summary, examples, returns) =
-            Templating.handleXmlDoc f.XmlDocument
+        let (summary, examples, returns) = Templating.handleXmlDoc f.XmlDocument
 
         [ "id", Mustache.Value.Scalar f.Id
           "name", Mustache.Value.Scalar f.DisplayName
@@ -162,17 +149,13 @@ module NewStd =
         |> Mustache.Value.Object
 
     let createModuleData (index: string) (title: string) (m: ModuleDocument) =
-        let classes =
-            m.GetClasses() |> List.map createClassData //|> Mustache.Value.Array
+        let classes = m.GetClasses() |> List.map createClassData //|> Mustache.Value.Array
 
-        let records =
-            m.GetRecords() |> List.map createRecordData
+        let records = m.GetRecords() |> List.map createRecordData
 
-        let unions =
-            m.GetUnions() |> List.map createUnionData
+        let unions = m.GetUnions() |> List.map createUnionData
 
-        let functions =
-            m.GetFunctions() |> List.map createFunctionData
+        let functions = m.GetFunctions() |> List.map createFunctionData
 
         [ "index", Mustache.Value.Scalar index
           "doc_name", Mustache.Value.Scalar $"Peeps API - {m.DisplayName}"
@@ -207,7 +190,6 @@ module NewStd =
 
           ]
         |> Map.ofList
-
 
     let generateIndex
         (indexEntries: Map<string, string>)
@@ -291,11 +273,10 @@ module NewStd =
         //    ModuleDocument.Create()
 
         // TODO create index.
-        let indexes =
-            createIndex regexIgnore modules
+        let indexes = createIndex regexIgnore modules
 
         modules
-        |> List.iter (fun m -> generateModulePage template savePath sectionName indexes regexIgnore m)
+        |> List.iter (generateModulePage template savePath sectionName indexes regexIgnore)
 
 module TestReport =
     let createTestResults (testRun: TestRunReport.TestRun) =
@@ -368,12 +349,13 @@ module TestReport =
 
 
         ()
-
+*)
 
 
 // Define a function to construct a message to print
 let from whom = sprintf "from %s" whom
 
+(*
 let passThru (members: Member list) (errors: Linter.LintingError list) =
     Console.ForegroundColor <- ConsoleColor.Magenta
 
@@ -383,12 +365,39 @@ let passThru (members: Member list) (errors: Linter.LintingError list) =
 
     Console.ResetColor()
     members
+*)
 
 [<EntryPoint>]
 let main argv =
+
+    let templateCache =
+        FXD
+            .Pipelines
+            .Impl
+            .TemplateCache
+            .Empty
+            .LoadAndAdd("article", "C:\\Users\\44748\\Projects\\FXD\\Templates\\article.mustache")
+            .LoadAndAdd("code_doc", "C:\\Users\\44748\\Projects\\FXD\\Templates\\module_document_std.mustache")
+
+    let cfg =
+        File.ReadAllText "C:\\ProjectData\\fdx\\test_config.json"
+        |> JsonSerializer.Deserialize<Pipelines.Configuration.PipelineConfiguration>
+
+
+    let ctx =
+        ({ Name = "Peeps"
+           Templates = templateCache
+           RootPath = "C:\\Users\\44748\\Projects\\Peeps"
+           OutputRoot = "C:\\ProjectData\\Peeps\\docs"
+           Configuration = cfg }: Pipelines.Impl.Context)
+
+
+    ctx.Run()
+
     // "C:\\Users\\44748\\Projects\\TestRepo\\TestRepo\\bin\\Debug\\net6.0\\TestRepo.xml"
     // "C:\\Users\\44748\\Projects\\TestRepo\\TestRepo\\Library.fs"
 
+    (*
     let paths =
         [ "C:\\Users\\44748\\Projects\\Freql\\Freql.Sqlite\\Library.fs"
           "C:\\Users\\44748\\Projects\\Freql\\Freql.MySql\\Library.fs" ]
@@ -402,8 +411,7 @@ let main argv =
 
     let ignoreRegex = "QueryHelpers"
 
-    let r =
-        SourceExtractor.extractMultiple peepsPaths "QueryHelpers|Internal"
+    let r = SourceExtractor.extractMultiple peepsPaths "QueryHelpers|Internal"
 
     let template =
         File.ReadAllText "C:\\Users\\44748\\Projects\\FXD\\Templates\\module_document_std.mustache"
@@ -438,7 +446,7 @@ let main argv =
 
 
     Pipeline.run ctx
-
+    *)
     (*
     let r =
         //XmlDocExtractor.extract "C:\\ProjectData\\Freql\\Freql.Sqlite.xml"

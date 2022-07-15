@@ -7,10 +7,27 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <Compile Include="Library.fs" />
+        <Compile Include="Common.fs" />
+        <Compile Include="Articles\Indexes.fs" />
+        <Compile Include="Articles\Renderer.fs" />
+        <Compile Include="CodeDocuments\FSharp\Common.fs" />
+        <Compile Include="CodeDocuments\FSharp\XmlDocExtractor.fs" />
+        <Compile Include="CodeDocuments\FSharp\Documentation.fs" />
+        <Compile Include="CodeDocuments\FSharp\SourceExtractor.fs" />
+        <Compile Include="CodeDocuments\FSharp\Linter.fs" />
+        <Compile Include="CodeDocuments\FSharp\Templating.fs" />
+        <Compile Include="CodeDocuments\FSharp\Indexes.fs" />
+        <Compile Include="CodeDocuments\FSharp\Renderer.fs" />
+        <Compile Include="CodeDocuments\Renderer.fs" />
+        <Compile Include="Reports\ProjectReport.fs" />
+        <Compile Include="Reports\TestRunReport.fs" />
+        <Compile Include="Reports\Indexes.fs" />
+        <Compile Include="Pipelines\Configuration.fs" />
+        <Compile Include="Pipelines\Indexes.fs" />
+        <Compile Include="Pipelines\Impl.fs" />
         <Compile Include="Documents.fs" />
-        <Compile Include="Reports.fs" />
         <Compile Include="DocumentGenerator.fs" />
+        
     </ItemGroup>
 
     <ItemGroup>
