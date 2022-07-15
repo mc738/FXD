@@ -64,12 +64,13 @@ module SourceExtractor =
                 | false -> (p, m @ [ createMethod e ]))
             ([], [])
 
-    let rec create (entity: FSharpEntity) =
+    let rec create (path: string) (entity: FSharpEntity) =
         match entity with
         | _ when entity.IsFSharpModule ->
             ModuleDocument.Create(
                 entity,
-                [ entity.NestedEntities |> listMap create
+                path,
+                [ entity.NestedEntities |> listMap (create path)
                   entity.MembersFunctionsAndValues
                   |> listMap (fun m -> FunctionDocument.Create(m, entity.Namespace |> Option.defaultValue "")) ]
                 |> List.concat
@@ -139,7 +140,7 @@ module SourceExtractor =
 
         assembly.Entities
         |> List.ofSeq
-        |> List.map (create)
+        |> List.map (create path)
 
     let extractMultiple (paths: string list) (filterRegex: string) =
         paths
@@ -147,7 +148,7 @@ module SourceExtractor =
         |> List.concat
         |> List.choose (fun m ->
             match m.MatchName filterRegex |> not with
-            | true -> Some m
+            | true -> Some (m)
             | false -> None)
         |> List.groupBy (fun r -> r.GetNamespace())
         |> Map.ofList

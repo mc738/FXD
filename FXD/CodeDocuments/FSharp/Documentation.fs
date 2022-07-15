@@ -175,15 +175,17 @@ module Documentation =
           DisplayName: string
           XDocSignature: string
           XmlDocument: XmlDocumentMember option
+          Path: string
           Members: Member list }
 
-        static member Create(entity: FSharpEntity, members: Member list) =
+        static member Create(entity: FSharpEntity, path: string, members: Member list) =
             { Id = slugifyName entity.FullName
               FullName = entity.FullName
               Namespace = entity.Namespace |> Option.defaultValue ""
               DisplayName = entity.DisplayName
               XDocSignature = entity.XmlDocSig
               XmlDocument = extractXmlDoc entity.DisplayName entity.XmlDoc
+              Path = path
               Members = members }
             |> Member.Module
 

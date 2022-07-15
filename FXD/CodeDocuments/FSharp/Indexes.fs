@@ -60,7 +60,7 @@ module Indexes =
                Title = title
                Items = r }: IndexSection)
 
-    let generate (sectionId: string) (sections: IndexSection list) (regexIgnore: string) (m: ModuleDocument) =
+    let generate (sectionId: string) (regexIgnore: string) (m: ModuleDocument) (sections: IndexSection list) =
         sections
         |> List.map (fun is ->
             match is.Id = sectionId with

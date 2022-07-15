@@ -2,6 +2,7 @@
 
 open System
 open System.IO
+open FDOM.Core.Common
 open FDOM.Core.Parsing
 open FDOM.Rendering
 open FXD
@@ -16,40 +17,20 @@ module ArticleRenderer =
 
     let run
         (template: Mustache.Token list)
-        (title: string)
-        (metadata: Map<string, string>)
+        (additionalValues: Map<string, Mustache.Value>)
+        (sectionTitle: string)
         (indexHtml: string)
-        (source: string list)
+        (doc: FDOM.Core.Common.DOM.Document)
         =
-
-        let blocks =
-            Parser.ParseLines(source).CreateBlockContent()
-
-        let doc: FDOM.Core.Common.DOM.Document =
-            { Style = FDOM.Core.Common.DOM.Style.Default
-              Name = title
-              Title = None
-              Sections =
-                [ { Style = FDOM.Core.Common.DOM.Style.Default
-                    Title = None
-                    Name = "Section 1"
-                    Content = blocks } ]
-              Resources =
-                [ { Name = "main_css"
-                    Path = "/home/max/Data/FDOM_Tests/css/style.css"
-                    VirtualPath = "css/style.css"
-                    Type = "stylesheet" } ] }
+        let title =  doc.GetTitleText()
 
         let values =
             ({ Values =
-                [ "title", Mustache.Value.Scalar title
-                  "titleSlug", Mustache.Value.Scalar <| slugifyName title
-                  "now", Mustache.Value.Scalar(DateTime.Now.ToString("dd MMMM yyyy HH:mm:ss"))
+                [ "section_title", Mustache.Value.Scalar sectionTitle
+                  "title", Mustache.Value.Scalar title
                   "index", Mustache.Value.Scalar indexHtml ]
-                @ (metadata
-                   |> Map.toList
-                   |> List.map (fun (k, v) -> k, Mustache.Value.Scalar v))
                 |> Map.ofList
+                |> concatMappedValues additionalValues
                Partials = Map.empty }: Mustache.Data)
 
         Html.renderFromParsedTemplate template values [] [] doc

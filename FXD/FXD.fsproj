@@ -9,6 +9,7 @@
     <ItemGroup>
         <Compile Include="Common.fs" />
         <Compile Include="Articles\Indexes.fs" />
+        <Compile Include="Articles\Templating.fs" />
         <Compile Include="Articles\Renderer.fs" />
         <Compile Include="CodeDocuments\FSharp\Common.fs" />
         <Compile Include="CodeDocuments\FSharp\XmlDocExtractor.fs" />
@@ -23,7 +24,7 @@
         <Compile Include="Reports\TestRunReport.fs" />
         <Compile Include="Reports\Indexes.fs" />
         <Compile Include="Pipelines\Configuration.fs" />
-        <Compile Include="Pipelines\Indexes.fs" />
+        <Compile Include="Pipelines\Context.fs" />
         <Compile Include="Pipelines\Impl.fs" />
         <Compile Include="Documents.fs" />
         <Compile Include="DocumentGenerator.fs" />

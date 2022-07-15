@@ -11,11 +11,20 @@ open FSharp.Compiler.CodeAnalysis
 open FSharp.Compiler.Symbols
 open FSharp.Compiler.Text
 open FSharp.Compiler.Xml
+open Fluff.Core
 
 [<AutoOpen>]
 module Common =
     let listMap<'In, 'Out> (fn: 'In -> 'Out) (s: seq<'In>) = s |> List.ofSeq |> List.map fn
 
+    let concatStringMap (map1: Map<string, string>) (map2: Map<string, string>) =
+        map2 |> Map.fold (fun (acc: Map<string, string>) k v -> acc.Add(k, v)) map1
+    
+    let concatMappedValues (map1: Map<string, Mustache.Value>) (map2: Map<string, Mustache.Value>) =
+        map2 |> Map.fold (fun (acc: Map<string, Mustache.Value>) k  v -> acc.Add(k, v)) map1
+        
+    let toMappedValues (map: Map<string, string>) = map |> Map.map (fun _ -> Mustache.Value.Scalar)
+        
     let slugifyName (name: string) =
         name
         |> Seq.fold
@@ -64,7 +73,6 @@ module Common =
 
             $"""<div class="index-section"><h2>{is.Title}</h2><ul>{indexes}</ul></div>"""
 
-
     and IndexItem =
         { Id: string
           Name: string
@@ -72,3 +80,6 @@ module Common =
 
         member ie.ToHtml() =
             $"""<li><a href="{ie.Link}.html">{ie.Name}</a></li>"""
+            
+            
+    

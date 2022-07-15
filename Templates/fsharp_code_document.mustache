@@ -4,20 +4,29 @@
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{doc_name}}</title>
-    <link href="../css/main.css" rel="stylesheet">
+    <title>{{title}} | {{doc_title}}</title>
+    <link href="{{css_root}}/fxd.css" rel="stylesheet">
+    <link href="{{css_root}}/prism.css" rel="stylesheet">
     <script src="{{fa_url}}" crossorigin="anonymous"></script>
 </head>
 <body>
 <nav>
-    <p>Nav</p>
+    <div class="nav-title">
+        <a href="{{home_link}}">
+            <h1>{{project_name}}</h1>
+        </a>
+        <small class="version">v.{{version}}</small>
+    </div>
+    <div>
+        <a href="{{repo_url}}"><span><i class="fab fa-github"></i></span></a>
+    </div>
 </nav>
 <main>
     <section id="index">
         <div class="index-title">
             <div class="logo">
                 <span><i class="fas fa-book"></i></span>
-                <h1>{{title}}</h1>
+                <h1>{{project_name}}</h1>
             </div>
             <label>
                 <input class="search-input" type="text" placeholder="Search...">
@@ -30,12 +39,13 @@
             <div class="page-header">
                 <div class="page-title">
                     <p>
-                        <a href="#"><span><i class="fas fa-home"></i></span></a> &GreaterGreater; {{name}}
+                        <a href="{{home_link}}"><span><i class="fas fa-home"></i></span></a> &GreaterGreater; API reference &GreaterGreater; {{section_title}} &GreaterGreater; {{name}}
                     </p>
                 </div>
             </div>
             <h1>{{name}}</h1>
             <p><small>Namespace:</small> {{namespace}}</p>
+            <p><small><a href="{{repo_url}}/{{source_link}}">View source <span><i class="fab fa-github"></i></span></a></small></p>
             {{#class_collection}}
                 <h2>Classes</h2>
                 {{#classes}}
@@ -319,10 +329,15 @@
             {{/function_collection}}
 
             <h2>Modules</h2>
-
+            
+            <small>Generated on {{now}} with <a href="{{fxd_repo_url}}">FXD <span><i class="fab fa-github"></i></span></a> (version {{fxd_version}}).</small>
         </section>
+        
     </section>
+    
 </main>
+<script src="{{js_root}}/fxd.js"></script>
+<script src="{{js_root}}/prism.js"></script>
 </body>
 </html>
 {{end}}

@@ -5,7 +5,8 @@ module Templating =
      open System.IO
      open System.Text.RegularExpressions
      open FXD.CodeDocuments.FSharp
-     open Fluff.Core    
+     open Fluff.Core
+     open FXD
      open XmlDocExtractor
      open Documentation
      
@@ -177,7 +178,9 @@ module Templating =
      let createModuleData
         (indexHtml: string)
         (title: string)
-        (additionValues: (string * Mustache.Value) list)
+        (sectionTitle: string)
+        (sourceLink: string)
+        (additionValues: Map<string, Mustache.Value>)
         (m: ModuleDocument)
         =
         let classes =
@@ -195,7 +198,9 @@ module Templating =
         [ "index", Mustache.Value.Scalar indexHtml
           "doc_name", Mustache.Value.Scalar $"Peeps API - {m.DisplayName}"
           "name", Mustache.Value.Scalar m.DisplayName
+          "section_title", Mustache.Value.Scalar sectionTitle
           "title", Mustache.Value.Scalar title
+          "source_link", Mustache.Value.Scalar sourceLink
           "namespace", Mustache.Value.Scalar m.Namespace
           // TODO add this outside
           if classes |> List.isEmpty |> not then
@@ -223,91 +228,19 @@ module Templating =
               |> Mustache.Value.Object
 
           ]
-        @ additionValues
         |> Map.ofList
-
-     let generateIndex
-        (indexEntries: Map<string, string>)
-        (sectionId: string)
-        (name: string)
-        (regexIgnore: string)
-        (members: Member list)
-        =
-        indexEntries
-        |> Map.toList
-        |> List.map (fun (id, v) ->
-            match sectionId = id with
-            | true ->
-                let contents =
-                    members
-                    |> List.fold
-                        (fun (a, c, r, u, f, m) cm ->
-                            match cm.MatchName(regexIgnore), cm with
-                            | false, Member.Abbreviation _ -> a @ [ cm ], c, r, u, f, m
-                            | false, Member.Class _ -> a, c @ [ cm ], r, u, f, m
-                            | false, Member.Record _ -> a, c, r @ [ cm ], u, f, m
-                            | false, Member.Union _ -> a, c, r, u @ [ cm ], f, m
-                            | false, Member.Function _ -> a, c, r, u, f @ [ cm ], m
-                            | false, Member.Module _ -> a, c, r, u, f, m @ [ cm ]
-                            | true, _ -> a, c, r, u, f, m
-                            | _, Member.Namespace _ -> a, c, r, u, f, m)
-                        ([], [], [], [], [], [])
-                    |> fun (a, c, r, u, f, m) -> [ a; c; r; u; f; m ] |> List.concat
-                    |> List.map (fun m -> $"""<a href="#{m.GetId()}">{m.GetDisplayName()}</a>""")
-                    |> String.concat ""
-
-                $"""<li class="open"><h3>{name}</h3>{contents}</li>"""
-            | false -> v)
-
-        |> String.concat ""
-        |> fun indexes -> $"""<div class="index-section"><h2>API reference</h2><ul>{indexes}</ul></div>"""
-
+        |> concatMappedValues additionValues
+     
      let generateModulePage
         (template: Mustache.Token list)
         (title: string)
+        (sectionTitle: string)
+        (additionValues: Map<string, Mustache.Value>)
+        (sourceLink: string)
         (indexHtml: string)
-        (additionValues: (string * Mustache.Value) list)
         (m: ModuleDocument)
         =
         
-        ({ Values = createModuleData indexHtml title additionValues m
+        ({ Values = createModuleData indexHtml title sectionTitle sourceLink additionValues m
            Partials = Map.empty }: Mustache.Data)
         |> fun d -> Mustache.replace d true template
-        //|> fun r -> File.WriteAllText(Path.Combine(savePath, $"{m.Id}.html"), r)
-
-     let createIndex (regexIgnore: string) (modules: ModuleDocument list) =
-        modules
-        |> List.map (fun m ->
-            match Regex.IsMatch(m.FullName, regexIgnore) with
-            | true -> None
-            | false -> Some(m.Id, $"""<li><a href="./{m.Id}.html">{m.DisplayName}</a></li>"""))
-        |> List.choose id
-        |> Map.ofList
-
-     (*
-     let createModules
-        (template: Mustache.Token list)
-        (savePath: string)
-        (title: string)
-        (regexIgnore: string)
-        (additionalValues: (string * Mustache.Value) list)
-        (members: Member list)
-        =
-        // TODO Handle top level non module.
-        let (modules, topLevel) =
-            members
-            |> List.fold
-                (fun (acc, topLevel) m ->
-                    match m with
-                    | Member.Module mm -> acc @ [ mm ], topLevel
-                    | _ -> acc, topLevel @ [])
-                ([], [])
-        //|> fun (acc, topLevel) ->
-        //    ModuleDocument.Create()
-
-        let indexes =
-            createIndex regexIgnore modules
-
-        modules
-        |> List.iter (generateModulePage template savePath title indexes regexIgnore additionalValues)
-     *)
