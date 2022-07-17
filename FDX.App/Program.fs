@@ -107,7 +107,7 @@ let main argv =
             .LoadAndAdd("fsharp_code_doc", "C:\\Users\\44748\\Projects\\FXD\\Templates\\fsharp_code_document.mustache")
 
     let cfg =
-        File.ReadAllText "C:\\ProjectData\\fdx\\test_config.json"
+        File.ReadAllText "C:\\Users\\44748\\Projects\\Peeps\\fxd.json"
         |> JsonSerializer.Deserialize<Configuration.PipelineConfiguration>
 
     let pipeline =
@@ -125,7 +125,7 @@ let main argv =
            Configuration = cfg }: DocumentPipeline)
 
     pipeline.Run()
-
+    
     // "C:\\Users\\44748\\Projects\\TestRepo\\TestRepo\\bin\\Debug\\net6.0\\TestRepo.xml"
     // "C:\\Users\\44748\\Projects\\TestRepo\\TestRepo\\Library.fs"
 

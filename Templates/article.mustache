@@ -18,7 +18,8 @@
         <small class="version">v.{{version}}</small>
     </div>
     <div>
-        <a href="{{repo_url}}"><span><i class="fab fa-github"></i></span></a>
+        <a id="nav-repo-link" href="{{repo_url}}"><span><i class="fab fa-github"></i></span></a>
+        <button id="show-nav" onclick="toggleIndex()"><span><i class="fas fa-bars"></i></span></button>
     </div>
 </nav>
 <main>
@@ -31,6 +32,9 @@
             <label>
                 <input class="search-input" type="text" placeholder="Search...">
             </label>
+        </div>
+        <div id="index-repo-link">
+            <a href="{{repo_url}}"><span><i class="fab fa-github"></i></span> <small>View repo</small></a>
         </div>
         {{&index}}
     </section>

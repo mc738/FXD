@@ -200,6 +200,7 @@ module Templating =
           "name", Mustache.Value.Scalar m.DisplayName
           "section_title", Mustache.Value.Scalar sectionTitle
           "title", Mustache.Value.Scalar title
+          "full_name", Mustache.Value.Scalar m.FullName
           "source_link", Mustache.Value.Scalar sourceLink
           "namespace", Mustache.Value.Scalar m.Namespace
           // TODO add this outside
