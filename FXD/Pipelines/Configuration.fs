@@ -1,5 +1,8 @@
 ﻿namespace FXD.Pipelines
 
+open System.IO
+open System.Text.Json
+
 module Configuration =
 
     open System.Text.Json.Serialization
@@ -20,6 +23,10 @@ module Configuration =
           Resources: ResourceConfiguration seq
           [<JsonPropertyName("sections")>]
           Sections: SectionItem seq }
+        
+        static member Load(path: string) =
+            File.ReadAllText path
+            |> JsonSerializer.Deserialize<PipelineConfiguration>
 
     and [<CLIMutable>] Arg =
         { [<JsonPropertyName("name")>]
