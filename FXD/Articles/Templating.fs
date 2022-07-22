@@ -1,5 +1,7 @@
 ﻿namespace FXD.Articles
 
+open FDOM.Core.Common
+
 module Templating =
 
     open FDOM.Core.Common
@@ -10,6 +12,13 @@ module Templating =
 
         let blocks =
             Parser.ParseLines(source).CreateBlockContent()
+            // Index headers.
+            |> List.map (function
+                | DOM.BlockContent.Header h when h.Level = DOM.HeaderLevel.H1 ->
+                    DOM.BlockContent.Header { h with Indexed = false }
+                | DOM.BlockContent.Header h when h.Level = DOM.HeaderLevel.H2 ->
+                    DOM.BlockContent.Header { h with Indexed = true }
+                | b -> b)
 
         let title =
             blocks

@@ -2,6 +2,7 @@
 
 open System
 open System.IO
+open FDOM.Core.Common
 open FXD
 open FXD.Pipelines.Configuration
 open Fluff.Core
@@ -37,13 +38,16 @@ module Articles =
         =
         data.Articles
         |> List.iter (fun a ->
-            //a.Document.ge
+            let pageIndexes =
+                a.Document.GetIndexes(DOM.InlineContent.GetRawText)
+                |> List.map (fun s -> slugifyName s, s)
             
             let index =
                 Articles.Indexes.generate
                     (slugifyName data.SectionName)
                     a.Document.Name
                     (a.Document.GetTitleText())
+                    pageIndexes
                     indexes
 
             Articles.ArticleRenderer.run template additionValues data.SectionName index a.Document
