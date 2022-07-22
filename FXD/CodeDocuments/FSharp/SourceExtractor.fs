@@ -134,17 +134,18 @@ module SourceExtractor =
         //| _ when
         | _ -> failwith "???"
 
-    let extract (path: string) =
+    let extract (rootPath: string) (path: string) =
         let s = parseAndCheckScript path
         let assembly = s.AssemblySignature
 
         assembly.Entities
         |> List.ofSeq
-        |> List.map (create path)
+        |> List.map (create <| Path.GetRelativePath(rootPath, path))
 
-    let extractMultiple (paths: string list) (filterRegex: string) =
+    let extractMultiple (rootPath: string) (paths: string list) (filterRegex: string) =
+        
         paths
-        |> List.map (fun p -> extract p)
+        |> List.map (fun p -> extract rootPath p)
         |> List.concat
         |> List.choose (fun m ->
             match m.MatchName filterRegex |> not with

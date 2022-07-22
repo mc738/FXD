@@ -37,6 +37,8 @@ module Articles =
         =
         data.Articles
         |> List.iter (fun a ->
+            //a.Document.ge
+            
             let index =
                 Articles.Indexes.generate
                     (slugifyName data.SectionName)
@@ -54,6 +56,7 @@ module FSharpCodeDocuments =
     let extract (rootPath: string) (section: SectionItem) =
         let modules =
             CodeDocuments.FSharp.SourceExtractor.extractMultiple
+                rootPath
                 (section.Items
                  |> List.ofSeq
                  |> List.map (fun p -> expandPath rootPath p))
@@ -94,7 +97,8 @@ module FSharpCodeDocuments =
             let index =
                 CodeDocuments.FSharp.Indexes.generate (slugifyName data.SectionName) data.RegexIgnore m indexes
 
-            let sourceLink = $"/blob/v.{version}/{sectionTitle}/{Path.GetFileName(m.Path)}"
+            let p = m.Path.Replace('\\', '/')
+            let sourceLink = $"/blob/v.{version}/{p}"
             CodeDocuments.FSharp.Templating.generateModulePage template m.DisplayName sectionTitle additionValues sourceLink index m
             |> fun r -> File.WriteAllText(Path.Combine(outputPath, $"{m.Id}.html"), r))
 
@@ -118,6 +122,9 @@ type DocumentPipeline =
             |> concatStringMap ctx.GlobalMetaData
             
         let outputPath = Path.Combine(ctx.OutputRoot, slugifyName ctx.Version)
+            
+        if Directory.Exists outputPath |> not then
+            Directory.CreateDirectory outputPath |> ignore
             
         let args =
             ctx.Configuration.Args

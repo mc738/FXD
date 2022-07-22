@@ -113,8 +113,8 @@ module ProjectReport =
 
     let createPackageReferenceObj (packageDependency: PackageDependency) =
         Mustache.Value.Object(
-            [ "packageName", Mustache.Value.Scalar packageDependency.Name
-              "packageVersion", Mustache.Value.Scalar packageDependency.Version ]
+            [ "package_name", Mustache.Value.Scalar packageDependency.Name
+              "package_version", Mustache.Value.Scalar packageDependency.Version ]
             |> Map.ofList
         )
 
@@ -125,8 +125,8 @@ module ProjectReport =
 
     let createProjectReferenceObj (packageDependency: ProjectDependency) =
         Mustache.Value.Object(
-            [ "projectName", Mustache.Value.Scalar packageDependency.Name
-              "projectPath", Mustache.Value.Scalar packageDependency.Path ]
+            [ "project_name", Mustache.Value.Scalar packageDependency.Name
+              "project_path", Mustache.Value.Scalar packageDependency.Path ]
             |> Map.ofList
         )
 
@@ -143,9 +143,9 @@ module ProjectReport =
             | _ -> None)
         |> List.map (fun pd ->
             Mustache.Value.Object(
-                [ "projectName", Mustache.Value.Scalar pd.Name
-                  "packageReferences", createPackageReferenceObjs pd.PackageDependencies
-                  "projectReferences", createProjectReferenceObjs pd.ProjectDependencies ]
+                [ "project_name", Mustache.Value.Scalar pd.Name
+                  "package_references", createPackageReferenceObjs pd.PackageDependencies
+                  "project_references", createProjectReferenceObjs pd.ProjectDependencies ]
                 |> Map.ofList
             ))
         |> fun r ->
