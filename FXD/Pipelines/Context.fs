@@ -6,7 +6,7 @@ module Context =
     open Fluff.Core
     open FXD
     open FXD.Pipelines.Configuration
-                
+
     [<AutoOpen>]
     module Utils =
 
@@ -24,7 +24,7 @@ module Context =
             |> Map.ofList
             |> toMappedValues
             //|> Map.fold (fun (acc: Map<string, Mustache.Value>) k v -> acc.Add(k, Mustache.Value.Scalar v)) Map.empty
-            |> concatMappedValues (globalMetadata |> toMappedValues)       
+            |> concatMappedValues (globalMetadata |> toMappedValues)
 
     type TemplateCache =
         { Values: Map<string, Mustache.Token list> }
@@ -53,10 +53,11 @@ module Context =
                         |> fun r -> tm.Add(p, r))
                 tc.Values
             |> fun r -> { tc with Values = r }
-    
+
     type ContextData =
         | Article of ArticlesData
         | FSharpCodeDocuments of FSharpCodeDocumentsData
+        | Reports of ReportsData
 
     and ArticlesData =
         { SectionName: string
@@ -72,4 +73,13 @@ module Context =
           RegexIgnore: string
           Template: string }
 
+    and ReportsData =
+        { SectionTitle: string
+          Reports: ReportType list }
 
+    and ReportType = ProjectReport of ProjectReportData
+
+    and ProjectReportData =
+        { SectionName: string
+          Data: Mustache.Value list
+          Template: string }

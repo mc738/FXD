@@ -3,7 +3,7 @@
 module Documentation =
 
     open System.Text.RegularExpressions
-    open FSharp.Compiler.Symbols    
+    open FSharp.Compiler.Symbols
     open FXD
     open XmlDocExtractor
 
@@ -14,9 +14,10 @@ module Documentation =
           Signature: string
           XDocSignature: string
           XmlDocument: XmlDocumentMember option
+          Path: string
           Parameters: FunctionParameter list }
 
-        static member Create(entity: FSharpMemberOrFunctionOrValue, ns: string) =
+        static member Create(entity: FSharpMemberOrFunctionOrValue, path: string, ns: string) =
             let doc =
                 extractXmlDoc entity.DisplayName entity.XmlDoc
 
@@ -26,6 +27,7 @@ module Documentation =
               Signature = entity.FullType.Format displayContext
               XDocSignature = entity.XmlDocSig
               XmlDocument = doc
+              Path = path
               Parameters =
                 entity.CurriedParameterGroups
                 |> listMap (fun pl ->
@@ -61,17 +63,19 @@ module Documentation =
           Namespace: string
           XDocSignature: string
           XmlDocument: XmlDocumentMember option
+          Path: string
           Members: UnionMember list
           Properties: PropertyDocument list
           Methods: MethodDocument list }
 
-        static member Create(entity: FSharpEntity, properties: PropertyDocument list, methods: MethodDocument list) =
+        static member Create(entity: FSharpEntity, path: string, properties: PropertyDocument list, methods: MethodDocument list) =
             { Id = slugifyName entity.FullName
               FullName = entity.FullName
               DisplayName = entity.DisplayName
               Namespace = entity.Namespace |> Option.defaultValue ""
               XDocSignature = entity.XmlDocSig
               XmlDocument = extractXmlDoc entity.DisplayName entity.XmlDoc
+              Path = path
               Members =
                 entity.UnionCases
                 |> listMap (fun e -> UnionMember.Create(e))
@@ -98,11 +102,12 @@ module Documentation =
           Namespace: string
           XDocSignature: string
           XmlDocument: XmlDocumentMember option
+          Path: string
           Fields: RecordField list
           Properties: PropertyDocument list
           Methods: MethodDocument list }
 
-        static member Create(entity: FSharpEntity, properties: PropertyDocument list, methods: MethodDocument list) =
+        static member Create(entity: FSharpEntity, path: string, properties: PropertyDocument list, methods: MethodDocument list) =
             let dm =
                 extractXmlDoc entity.DisplayName entity.XmlDoc
 
@@ -112,6 +117,7 @@ module Documentation =
               Namespace = entity.Namespace |> Option.defaultValue ""
               XDocSignature = entity.XmlDocSig
               XmlDocument = extractXmlDoc entity.DisplayName entity.XmlDoc
+              Path = path
               Fields =
                 entity.FSharpFields
                 |> List.ofSeq
@@ -141,16 +147,18 @@ module Documentation =
           XDocSignature: string
           Namespace: string
           XmlDocument: XmlDocumentMember option
+          Path: string
           Properties: PropertyDocument list
           Methods: MethodDocument list }
 
-        static member Create(entity: FSharpEntity, properties: PropertyDocument list, methods: MethodDocument list) =
+        static member Create(entity: FSharpEntity, path: string, properties: PropertyDocument list, methods: MethodDocument list) =
             { Id = slugifyName entity.FullName
               FullName = entity.FullName
               DisplayName = entity.DisplayName
               Namespace = entity.Namespace |> Option.defaultValue ""
               XDocSignature = entity.XmlDocSig
               XmlDocument = extractXmlDoc entity.DisplayName entity.XmlDoc
+              Path = path
               Properties = properties
               Methods = methods }
             |> Member.Class
@@ -189,6 +197,16 @@ module Documentation =
               Members = members }
             |> Member.Module
 
+        static member CreateTopLevel(id, fullName, ns, displayName, path, members) =
+            { Id = id
+              FullName = fullName
+              Namespace = ns
+              DisplayName = displayName
+              XDocSignature = ""
+              XmlDocument = None
+              Path = path
+              Members = members }
+
         member m.GetClasses() =
             m.Members
             |> List.fold
@@ -222,6 +240,15 @@ module Documentation =
                 (fun acc m ->
                     match m with
                     | Member.Function f -> acc @ [ f ]
+                    | _ -> acc)
+                []
+
+        member m.GetModules() =
+            m.Members
+            |> List.fold
+                (fun acc m ->
+                    match m with
+                    | Member.Module m -> acc @ [ m ]
                     | _ -> acc)
                 []
 
@@ -283,3 +310,14 @@ module Documentation =
             | Module m -> m.DisplayName
             | Namespace ns -> failwith "TODO: implement."
             | Abbreviation a -> a.DisplayName
+
+        member m.GetPath() =
+            match m with
+            | Function f -> f.Path
+            | Union u -> u.Path
+            | Record r -> r.Path
+            | Class c -> c.Path
+            | Module m -> m.Path
+            | Namespace ns -> failwith "TODO: implement."
+            | Abbreviation a -> failwith "TODO: implement."
+            

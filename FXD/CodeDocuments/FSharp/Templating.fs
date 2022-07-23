@@ -1,16 +1,18 @@
 ﻿namespace FXD.CodeDocuments.FSharp
 
+open FXD.CodeDocuments.FSharp.Documentation
+
 module Templating =
 
-     open System.IO
-     open System.Text.RegularExpressions
-     open FXD.CodeDocuments.FSharp
-     open Fluff.Core
-     open FXD
-     open XmlDocExtractor
-     open Documentation
-     
-     let handleXmlDoc doc =
+    open System.IO
+    open System.Text.RegularExpressions
+    open FXD.CodeDocuments.FSharp
+    open Fluff.Core
+    open FXD
+    open XmlDocExtractor
+    open Documentation
+
+    let handleXmlDoc doc =
         match doc with
         | Some xdoc ->
             let summary =
@@ -27,8 +29,8 @@ module Templating =
 
             summary, examples, returns
         | None -> None, [], None
-     
-     let createMethodData (m: MethodDocument) =
+
+    let createMethodData (m: MethodDocument) =
         let (summary, examples, returns) =
             handleXmlDoc m.XmlDocument
 
@@ -53,7 +55,7 @@ module Templating =
         |> Map.ofList
         |> Mustache.Value.Object
 
-     let createPropertyData (p: PropertyDocument) =
+    let createPropertyData (p: PropertyDocument) =
         let (summary, examples, returns) =
             handleXmlDoc p.XmlDocument
 
@@ -64,7 +66,7 @@ module Templating =
         |> Map.ofList
         |> Mustache.Value.Object
 
-     let createMethods (ms: MethodDocument list) =
+    let createMethods (ms: MethodDocument list) =
         match ms.IsEmpty with
         | true -> None
         | false ->
@@ -73,7 +75,7 @@ module Templating =
             |> Mustache.Value.Object
             |> Some
 
-     let createProperties (ms: PropertyDocument list) =
+    let createProperties (ms: PropertyDocument list) =
         match ms.IsEmpty with
         | true -> None
         | false ->
@@ -85,7 +87,7 @@ module Templating =
             |> Mustache.Value.Object
             |> Some
 
-     let createClassData (c: ClassDocument) =
+    let createClassData (c: ClassDocument) =
         let (summary, examples, returns) =
             handleXmlDoc c.XmlDocument
 
@@ -101,7 +103,7 @@ module Templating =
         |> Map.ofList
         |> Mustache.Value.Object
 
-     let createRecordData (r: RecordDocument) =
+    let createRecordData (r: RecordDocument) =
         let (summary, examples, returns) =
             handleXmlDoc r.XmlDocument
 
@@ -125,7 +127,7 @@ module Templating =
         |> Map.ofList
         |> Mustache.Value.Object
 
-     let createUnionData (u: UnionDocument) =
+    let createUnionData (u: UnionDocument) =
         let (summary, examples, returns) =
             handleXmlDoc u.XmlDocument
 
@@ -149,14 +151,14 @@ module Templating =
         |> Map.ofList
         |> Mustache.Value.Object
 
-     let createFunctionParameterData (p: FunctionParameter) =
+    let createFunctionParameterData (p: FunctionParameter) =
         [ "name", Mustache.Value.Scalar p.Name
           "type", Mustache.Value.Scalar p.Type
           "document", Mustache.Value.Scalar(p.Document |> Option.defaultValue "") ]
         |> Map.ofList
         |> Mustache.Value.Object
 
-     let createFunctionData (f: FunctionDocument) =
+    let createFunctionData (f: FunctionDocument) =
         let (summary, examples, returns) =
             handleXmlDoc f.XmlDocument
 
@@ -175,7 +177,61 @@ module Templating =
         |> Map.ofList
         |> Mustache.Value.Object
 
-     let createModuleData
+    let rec createNestedModuleData (m: ModuleDocument) =
+        let (summary, examples, returns) =
+            handleXmlDoc m.XmlDocument
+        
+        let classes =
+            m.GetClasses() |> List.map createClassData //|> Mustache.Value.Array
+
+        let records =
+            m.GetRecords() |> List.map createRecordData
+
+        let unions =
+            m.GetUnions() |> List.map createUnionData
+
+        let functions =
+            m.GetFunctions() |> List.map createFunctionData
+
+        let modules =
+            m.GetModules() |> List.map createNestedModuleData
+
+        [ "id", Mustache.Value.Scalar m.Id
+          "name", Mustache.Value.Scalar m.DisplayName
+          "summary", Mustache.Value.Scalar(summary |> Option.defaultValue "")
+          if classes |> List.isEmpty |> not then
+              "class_collection",
+              [ "classes", Mustache.Value.Array classes ]
+              |> Map.ofList
+              |> Mustache.Value.Object
+
+          if records |> List.isEmpty |> not then
+              "record_collection",
+              [ "records", Mustache.Value.Array records ]
+              |> Map.ofList
+              |> Mustache.Value.Object
+
+          if unions |> List.isEmpty |> not then
+              "union_collection",
+              [ "unions", Mustache.Value.Array unions ]
+              |> Map.ofList
+              |> Mustache.Value.Object
+
+          if functions.IsEmpty |> not then
+              "function_collection",
+              [ "functions", Mustache.Value.Array functions ]
+              |> Map.ofList
+              |> Mustache.Value.Object
+
+          if modules.IsEmpty |> not then
+              "modules_collection",
+              [ "modules", Mustache.Value.Array modules ]
+              |> Map.ofList
+              |> Mustache.Value.Object ]
+        |> Map.ofList
+        |> Mustache.Value.Object
+
+    let createModuleData
         (indexHtml: string)
         (title: string)
         (sectionTitle: string)
@@ -194,6 +250,9 @@ module Templating =
 
         let functions =
             m.GetFunctions() |> List.map createFunctionData
+
+        let modules =
+            m.GetModules() |> List.map createNestedModuleData
 
         [ "index", Mustache.Value.Scalar indexHtml
           "doc_name", Mustache.Value.Scalar $"Peeps API - {m.DisplayName}"
@@ -228,11 +287,15 @@ module Templating =
               |> Map.ofList
               |> Mustache.Value.Object
 
-          ]
+          if modules.IsEmpty |> not then
+              "modules_collection",
+              [ "modules", Mustache.Value.Array modules ]
+              |> Map.ofList
+              |> Mustache.Value.Object ]
         |> Map.ofList
         |> concatMappedValues additionValues
-     
-     let generateModulePage
+
+    let generateModulePage
         (template: Mustache.Token list)
         (title: string)
         (sectionTitle: string)
@@ -241,7 +304,7 @@ module Templating =
         (indexHtml: string)
         (m: ModuleDocument)
         =
-        
+
         ({ Values = createModuleData indexHtml title sectionTitle sourceLink additionValues m
            Partials = Map.empty }: Mustache.Data)
         |> fun d -> Mustache.replace d true template

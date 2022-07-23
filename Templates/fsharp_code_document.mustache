@@ -43,13 +43,15 @@
             <div class="page-header">
                 <div class="page-title">
                     <p>
-                        <a href="{{home_link}}"><span><i class="fas fa-home"></i></span></a> &GreaterGreater; API reference &GreaterGreater; {{section_title}} &GreaterGreater; {{name}}
+                        <a href="{{home_link}}"><span><i class="fas fa-home"></i></span></a> &GreaterGreater; API
+                        reference &GreaterGreater; {{section_title}} &GreaterGreater; {{name}}
                     </p>
                 </div>
             </div>
             <h1>{{name}}</h1>
             <p><small>Namespace:</small> {{namespace}}</p>
-            <p><small><a href="{{repo_url}}/{{source_link}}">View source <span><i class="fab fa-github"></i></span></a></small></p>
+            <p><small><a href="{{repo_url}}/{{source_link}}">View source <span><i class="fab fa-github"></i></span></a></small>
+            </p>
             {{#class_collection}}
                 <h2>Classes</h2>
                 {{#classes}}
@@ -332,13 +334,304 @@
                 </details>
             {{/function_collection}}
 
-            <h2>Modules</h2>
-            
-            <small>Generated on {{now}} with <a href="{{fxd_repo_url}}">FXD <span><i class="fab fa-github"></i></span></a> (version {{fxd_version}}).</small>
+            {{#modules_collection}}
+                <h2>Modules</h2>
+                {{#modules}}
+                    <details open>
+                        <summary><h3 id="{{id}}">{{name}}</h3></summary>
+                        <div class="details-content">
+                            {{#class_collection}}
+                                <h2>Classes</h2>
+                                {{#classes}}
+                                    <details open>
+                                        <summary><h3 id="{{id}}">{{name}}</h3></summary>
+                                        <div class="details-content">
+                                            <p>{{summary}}</p>
+                                            {{#methods}}
+                                                <h4>Methods</h4>
+                                                <table>
+                                                    <thead>
+                                                    <tr>
+                                                        <th style="width: 33%">Name</th>
+                                                        <th style="width: 66%">Details</th>
+                                                    </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                    {{#items}}
+                                                        <tr id="{{name}}">
+                                                            <td>
+                                                                <p>{{name}}</p>
+                                                                <small>{{signature}}</small>
+                                                            </td>
+                                                            <td>
+                                                                <p>{{summary}}</p>
+                                                                {{#parameters}}
+                                                                    <h5>{{name}}<small> : {{type}}</small></h5>
+                                                                    <p>{{document}}</p>
+                                                                {{/parameters}}
+
+                                                                <h5>Returns</h5>
+                                                                <p>{{returns}}</p>
+                                                            </td>
+                                                        </tr>
+                                                    {{/items}}
+                                                    </tbody>
+                                                </table>
+                                            {{/methods}}
+                                            {{#Properties}}
+                                                <h4>Properties</h4>
+                                                <table>
+                                                    <thead>
+                                                    <tr>
+                                                        <th style="width: 33%">Name</th>
+                                                        <th style="width: 66%">Details</th>
+                                                    </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                    {{#items}}
+                                                        <tr id="{{name}}">
+                                                            <td>
+                                                                <p>{{name}}</p>
+                                                            </td>
+                                                            <td>
+                                                                <p>{{summary}}</p>
+                                                                <h5>Returns</h5>
+                                                                <p>{{returns}}</p>
+                                                            </td>
+                                                        </tr>
+                                                    {{/items}}
+                                                    </tbody>
+                                                </table>
+                                            {{/Properties}}
+                                        </div>
+                                    </details>
+                                {{/classes}}
+                            {{/class_collection}}
+                            {{#record_collection}}
+                                <h2>Records</h2>
+                                {{#records}}
+                                    <details open>
+                                        <summary>
+                                            <h3 id="{{id}}">{{name}}</h3>
+                                        </summary>
+                                        <div class="details-content">
+                                            <p>{{summary}}</p>
+                                            <h4>Fields</h4>
+                                            <table>
+                                                <thead>
+                                                <tr>
+                                                    <th style="width: 33%">Name</th>
+                                                    <th style="width: 66%">Type</th>
+                                                </tr>
+                                                </thead>
+                                                <tbody>
+                                                {{#fields}}
+                                                    <tr id="{{name}}">
+                                                        <td>
+                                                            <p>{{name}}</p>
+                                                        </td>
+                                                        <td>
+                                                            <p>{{type}}</p>
+                                                        </td>
+                                                    </tr>
+                                                {{/fields}}
+                                                </tbody>
+                                            </table>
+                                            {{#methods}}
+                                                <h4>Methods</h4>
+                                                <table>
+                                                    <thead>
+                                                    <tr>
+                                                        <th style="width: 33%">Name</th>
+                                                        <th style="width: 66%">Details</th>
+                                                    </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                    {{#items}}
+                                                        <tr id="{{name}}">
+                                                            <td>
+                                                                <p>{{name}}</p>
+                                                                <small>{{signature}}</small>
+                                                            </td>
+                                                            <td>
+                                                                <p>{{summary}}</p>
+                                                                {{#parameters}}
+                                                                    <h5>{{name}}<small> : {{type}}</small></h5>
+                                                                    <p>{{document}}</p>
+                                                                {{/parameters}}
+
+                                                                <h5>Returns</h5>
+                                                                <p>{{returns}}</p>
+                                                            </td>
+                                                        </tr>
+                                                    {{/items}}
+                                                    </tbody>
+                                                </table>
+                                            {{/methods}}
+                                            {{#Properties}}
+                                                <h4>Properties</h4>
+                                                <table>
+                                                    <thead>
+                                                    <tr>
+                                                        <th style="width: 33%">Name</th>
+                                                        <th style="width: 66%">Details</th>
+                                                    </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                    {{#items}}
+                                                        <tr id="{{name}}">
+                                                            <td>
+                                                                <p>{{name}}</p>
+                                                            </td>
+                                                            <td>
+                                                                <p>{{summary}}</p>
+                                                                <h5>Returns</h5>
+                                                                <p>{{returns}}</p>
+                                                            </td>
+                                                        </tr>
+                                                    {{/items}}
+                                                    </tbody>
+                                                </table>
+                                            {{/Properties}}
+                                        </div>
+                                    </details>
+                                {{/records}}
+                            {{/record_collection}}
+                            {{#union_collection}}
+                                <h2>Unions</h2>
+                                {{#unions}}
+                                    <details open>
+                                        <summary><h3 id="{{id}}">{{name}}</h3></summary>
+                                        <div class="details-content">
+                                            <p>{{summary}}</p>
+                                            <h4>Union cases</h4>
+                                            <table>
+                                                <thead>
+                                                <tr>
+                                                    <th style="width: 33%">Name</th>
+                                                    <th style="width: 66%">Type</th>
+                                                </tr>
+                                                </thead>
+                                                <tbody>
+                                                {{#union_cases}}
+                                                    <tr id="{{name}}">
+                                                        <td>
+                                                            <p>{{name}}</p>
+                                                        </td>
+                                                        <td>
+                                                            <p>{{type}}</p>
+                                                        </td>
+                                                    </tr>
+                                                {{/union_cases}}
+                                                </tbody>
+                                            </table>
+                                            {{#methods}}
+                                                <h4>Methods</h4>
+                                                <table>
+                                                    <thead>
+                                                    <tr>
+                                                        <th style="width: 33%">Name</th>
+                                                        <th style="width: 66%">Details</th>
+                                                    </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                    {{#items}}
+                                                        <tr id="{{name}}">
+                                                            <td>
+                                                                <p>{{name}}</p>
+                                                                <small>{{signature}}</small>
+                                                            </td>
+                                                            <td>
+                                                                <p>{{summary}}</p>
+                                                                {{#parameters}}
+                                                                    <h5>{{name}}<small> : {{type}}</small></h5>
+                                                                    <p>{{document}}</p>
+                                                                {{/parameters}}
+
+                                                                <h5>Returns</h5>
+                                                                <p>{{returns}}</p>
+                                                            </td>
+                                                        </tr>
+                                                    {{/items}}
+                                                    </tbody>
+                                                </table>
+                                            {{/methods}}
+                                            {{#Properties}}
+                                                <h4>Properties</h4>
+                                                <table>
+                                                    <thead>
+                                                    <tr>
+                                                        <th style="width: 33%">Name</th>
+                                                        <th style="width: 66%">Details</th>
+                                                    </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                    {{#items}}
+                                                        <tr id="{{name}}">
+                                                            <td>
+                                                                <p>{{name}}</p>
+                                                            </td>
+                                                            <td>
+                                                                <p>{{summary}}</p>
+                                                                <h5>Returns</h5>
+                                                                <p>{{returns}}</p>
+                                                            </td>
+                                                        </tr>
+                                                    {{/items}}
+                                                    </tbody>
+                                                </table>
+                                            {{/Properties}}
+                                        </div>
+                                    </details>
+                                {{/unions}}
+                            {{/union_collection}}
+                            {{#function_collection}}
+                                <details open>
+                                    <summary><h3 id="{{id}}">Functions</h3></summary>
+                                    <div class="details-content">
+                                        <table>
+                                            <thead>
+                                            <tr>
+                                                <th style="width: 33%">Name</th>
+                                                <th style="width: 66%">Details</th>
+                                            </tr>
+                                            </thead>
+                                            <tbody>
+                                            {{#functions}}
+                                                <tr>
+                                                    <td>
+                                                        <p>{{name}}</p>
+                                                        <small>{{signature}}</small>
+                                                    </td>
+                                                    <td>
+                                                        <p>{{summary}}</p>
+                                                        {{#parameters}}
+                                                            <h5>{{name}}<small> : {{type}}</small></h5>
+                                                            <p>{{document}}</p>
+                                                        {{/parameters}}
+
+                                                        <h5>Returns</h5>
+                                                        <p>{{returns}}</p>
+                                                    </td>
+                                                </tr>
+                                            {{/functions}}
+                                            </tbody>
+                                        </table>
+
+                                    </div>
+                                </details>
+                            {{/function_collection}}
+                        </div>
+                    </details>
+                {{/modules}}
+            {{/modules_collection}}
+
+            <small>Generated on {{now}} with <a href="{{fxd_repo_url}}">FXD <span><i
+                    class="fab fa-github"></i></span></a> (version {{fxd_version}}).</small>
         </section>
-        
+
     </section>
-    
+
 </main>
 <script src="{{js_root}}/fxd.js"></script>
 <script src="{{js_root}}/prism.js"></script>

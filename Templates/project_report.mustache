@@ -1,0 +1,120 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project report | {{doc_title}}</title>
+    <link href="{{css_root}}/fxd.css" rel="stylesheet">
+    <link href="{{css_root}}/prism.css" rel="stylesheet">
+    <script src="{{fa_url}}" crossorigin="anonymous"></script>
+</head>
+<body>
+<nav>
+    <div class="nav-title">
+        <a href="{{home_link}}">
+            <h1>{{project_name}}</h1>
+        </a>
+        <small class="version">v.{{version}}</small>
+    </div>
+    <div>
+        <a id="nav-repo-link" href="{{repo_url}}"><span><i class="fab fa-github"></i></span></a>
+        <button id="show-nav" onclick="toggleIndex()"><span><i class="fas fa-bars"></i></span></button>
+    </div>
+</nav>
+<main>
+    <section id="index">
+        <div class="index-title">
+            <div class="logo">
+                <span><i class="fas fa-book"></i></span>
+                <h1>{{project_name}}</h1>
+            </div>
+            <label>
+                <input class="search-input" type="text" placeholder="Search...">
+            </label>
+        </div>
+        <div id="index-repo-link">
+            <a href="{{repo_url}}"><span><i class="fab fa-github"></i></span> <small>View repo</small></a>
+        </div>
+        {{&index}}
+    </section>
+    <section id="body">
+        <section id="content">
+            <div class="page-header">
+                <div class="page-title">
+                    <p>
+                        <a href="{{home_link}}"><span><i class="fas fa-home"></i></span></a> &GreaterGreater; Reports &GreaterGreater; Project report
+                    </p>
+                </div>
+            </div>
+            <h1>Project report</h1>
+            {{#projects}}
+                <details open>
+                    <summary><h3>{{project_name}}</h3></summary>
+                    <div class="details-content">
+                        {{#package_dependencies}}
+                            <h4>Package dependencies</h4>
+                            <table>
+                                <thead>
+                                <tr>
+                                    <th style="width: 33%">Name</th>
+                                    <th style="width: 66%">Version</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                {{#package_references}}
+                                    <tr>
+                                        <td>
+                                            <p>{{package_name}}</p>
+                                        </td>
+                                        <td>
+                                            <p>{{package_version}}</p>
+                                        </td>
+                                    </tr>
+                                {{/package_references}}
+                                </tbody>
+                            </table>
+                        {{/package_dependencies}}
+                        {{^package_dependencies}}
+                            <small>No package dependencies.</small>
+                        {{/package_dependencies}}
+                        {{#project_dependencies}}
+                            <h4>Project dependencies</h4>
+                            <table>
+                                <thead>
+                                <tr>
+                                    <th style="width: 33%">Name</th>
+                                    <th style="width: 66%">Path</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                {{#project_references}}
+                                    <tr>
+                                        <td>
+                                            <p>{{project_name}}</p>
+                                        </td>
+                                        <td>
+                                            <p>{{project_path}}</p>
+                                        </td>
+                                    </tr>
+                                {{/project_references}}
+                                </tbody>
+                            </table>    
+                        {{/project_dependencies}}
+                        {{^project_dependencies}}
+                            <small>No project dependencies.</small>
+                        {{/project_dependencies}}
+                    </div>
+                </details>    
+            {{/projects}}
+            <small>Generated on {{now}} with <a href="{{fxd_repo_url}}">FXD <span><i class="fab fa-github"></i></span></a> (version {{fxd_version}}).</small>
+        </section>
+
+    </section>
+
+</main>
+<script src="{{js_root}}/fxd.js"></script>
+<script src="{{js_root}}/prism.js"></script>
+</body>
+</html>
+{{end}}

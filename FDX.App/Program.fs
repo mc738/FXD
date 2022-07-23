@@ -105,6 +105,7 @@ let main argv =
             .Empty
             .LoadAndAdd("article", "C:\\Users\\44748\\Projects\\FXD\\Templates\\article.mustache")
             .LoadAndAdd("fsharp_code_doc", "C:\\Users\\44748\\Projects\\FXD\\Templates\\fsharp_code_document.mustache")
+            .LoadAndAdd("project_report", "C:\\Users\\44748\\Projects\\FXD\\Templates\\project_report.mustache")
 
     let cfg =
         File.ReadAllText "C:\\Users\\44748\\Projects\\Peeps\\fxd.json"

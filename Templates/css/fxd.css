@@ -250,6 +250,7 @@ details[open] .content-no-side-padding {
 
 table {
     width: 100%;
+    table-layout: fixed;
 }
 
 th, td {
@@ -259,6 +260,10 @@ th, td {
 th {
     font-size: 0.75rem;
     text-align: left;
+}
+
+td p {
+    overflow-wrap: anywhere;
 }
 
 .search-input {
@@ -298,6 +303,7 @@ th {
     padding-bottom: 0.25rem;
     padding-left: 0.5rem;
     padding-right: 0.5rem;
+    overflow-wrap: anywhere;
 }
 
 .index-section a {

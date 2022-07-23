@@ -5,6 +5,7 @@ open System.IO
 open FDOM.Core.Common
 open FXD
 open FXD.Pipelines.Configuration
+open FXD.Pipelines.Context
 open Fluff.Core
 open Context
 
@@ -41,7 +42,7 @@ module Articles =
             let pageIndexes =
                 a.Document.GetIndexes(DOM.InlineContent.GetRawText)
                 |> List.map (fun s -> slugifyName s, s)
-            
+
             let index =
                 Articles.Indexes.generate
                     (slugifyName data.SectionName)
@@ -103,9 +104,66 @@ module FSharpCodeDocuments =
 
             let p = m.Path.Replace('\\', '/')
             let sourceLink = $"/blob/v.{version}/{p}"
-            CodeDocuments.FSharp.Templating.generateModulePage template m.DisplayName sectionTitle additionValues sourceLink index m
+
+            CodeDocuments.FSharp.Templating.generateModulePage
+                template
+                m.DisplayName
+                sectionTitle
+                additionValues
+                sourceLink
+                index
+                m
             |> fun r -> File.WriteAllText(Path.Combine(outputPath, $"{m.Id}.html"), r))
 
+module Reports =
+
+    let extract (rootPath: string) (section: SectionItem) =
+
+        let pages =
+            section.Items
+            |> List.ofSeq
+            |> List.choose (function
+                | "project_report" -> Some("project_report", "Project report")
+                | _ -> None)
+
+        //let reports =
+        section.Items
+        |> List.ofSeq
+        |> List.choose (fun s ->
+            match s with
+            | "project_report" ->
+                ({ SectionName = "Project report"
+                   Data = Reports.ProjectReport.extract rootPath
+                   Template = "project_report" }: ProjectReportData)
+                |> ReportType.ProjectReport
+                |> Some
+            | _ -> None)
+        |> fun r ->
+            ({ SectionTitle = section.Title
+               Reports = r }: ReportsData)
+            |> ContextData.Reports
+            |> fun r -> Some(r, Reports.Indexes.extract section.Title pages)
+
+    let renderProjectReport
+        (outputPath: string)
+        (template: Mustache.Token list)
+        (additionalValues: Map<string, Mustache.Value>)
+        (indexes: IndexSection list)
+        (data: Mustache.Value list)
+        =
+        let indexHtml = Reports.Indexes.generate "reports" "project_reports" "Projects report" indexes
+
+        ({ Values =
+            [ "section_title", Mustache.Value.Scalar "Reports"
+              "title", Mustache.Value.Scalar "Project report"
+              "projects", Mustache.Array data
+              "index", Mustache.Value.Scalar indexHtml ]
+            |> Map.ofList
+            |> concatMappedValues additionalValues
+           Partials = Map.empty }: Mustache.Data)
+        |> fun d -> Mustache.replace d true template
+        |> fun r -> File.WriteAllText(Path.Combine(outputPath, $"project_report.html"), r)
+           
 type DocumentPipeline =
     { Name: string
       Templates: TemplateCache
@@ -124,12 +182,13 @@ type DocumentPipeline =
               "version", ctx.Version ]
             |> Map.ofList
             |> concatStringMap ctx.GlobalMetaData
-            
-        let outputPath = Path.Combine(ctx.OutputRoot, slugifyName ctx.Version)
-            
+
+        let outputPath =
+            Path.Combine(ctx.OutputRoot, slugifyName ctx.Version)
+
         if Directory.Exists outputPath |> not then
             Directory.CreateDirectory outputPath |> ignore
-            
+
         let args =
             ctx.Configuration.Args
             |> List.ofSeq
@@ -146,6 +205,7 @@ type DocumentPipeline =
                 match ctx.Templates.Values.TryFind s.Template, s.Type with
                 | Some template, "articles" -> Articles.extract ctx.RootPath s
                 | Some template, "fsharp_code_documents" -> FSharpCodeDocuments.extract ctx.RootPath s
+                | _, "reports" -> Reports.extract ctx.RootPath s
                 | Some _, t ->
                     printfn $"Unknown section type `{t}`. Skipping."
                     None
@@ -165,4 +225,12 @@ type DocumentPipeline =
                 match ctx.Templates.Values.TryFind fsd.Template with
                 | Some t ->
                     FSharpCodeDocuments.render outputPath t additionValues fsd.SectionName ctx.Version indexes fsd
-                | None -> ())
+                | None -> ()
+            | ContextData.Reports rs ->
+                rs.Reports
+                |> List.iter (fun r ->
+                    match r with
+                    | ReportType.ProjectReport prd ->
+                        match ctx.Templates.Values.TryFind prd.Template with
+                        | Some t -> Reports.renderProjectReport outputPath t additionValues indexes prd.Data
+                        | None -> ()))

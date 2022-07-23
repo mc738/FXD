@@ -29,9 +29,10 @@ module SourceExtractor =
         checker.ParseAndCheckProject(projOptions)
         |> Async.RunSynchronously
 
-    let createFunctions (docMembers: Map<string, XmlDocumentMember>) (entity: FSharpEntity) =
+    /// Unneeded?
+    let createFunctions (docMembers: Map<string, XmlDocumentMember>) (entity: FSharpEntity) (path: string) =
         entity.MembersFunctionsAndValues
-        |> listMap (fun m -> FunctionDocument.Create(m, entity.Namespace |> Option.defaultValue ""))
+        |> listMap (fun m -> FunctionDocument.Create(m, path, entity.Namespace |> Option.defaultValue ""))
 
     let createMethod (v: FSharpMemberOrFunctionOrValue) =
         let dm =
@@ -72,19 +73,19 @@ module SourceExtractor =
                 path,
                 [ entity.NestedEntities |> listMap (create path)
                   entity.MembersFunctionsAndValues
-                  |> listMap (fun m -> FunctionDocument.Create(m, entity.Namespace |> Option.defaultValue "")) ]
+                  |> listMap (fun m -> FunctionDocument.Create(m, path, entity.Namespace |> Option.defaultValue "")) ]
                 |> List.concat
             )
         | _ when entity.IsFSharpRecord ->
             let (properties, methods) =
                 createPropertiesAndMethods entity
 
-            RecordDocument.Create(entity, properties, methods)
+            RecordDocument.Create(entity, path, properties, methods)
         | _ when entity.IsFSharpUnion ->
             let (properties, methods) =
                 createPropertiesAndMethods entity
 
-            UnionDocument.Create(entity, properties, methods)
+            UnionDocument.Create(entity, path, properties, methods)
         | _ when entity.IsClass ->
             let createMethod (v: FSharpMemberOrFunctionOrValue) =
                 let dm =
@@ -117,7 +118,7 @@ module SourceExtractor =
                         | false -> (m @ [ createMethod e ], p))
                     ([], [])
 
-            ClassDocument.Create(entity, properties, methods)
+            ClassDocument.Create(entity, path, properties, methods)
         | _ when entity.IsArrayType -> failwith "todo"
         | _ when entity.IsNamespace -> failwith "todo"
         | _ when entity.IsFSharpAbbreviation ->
@@ -143,14 +144,18 @@ module SourceExtractor =
         |> List.map (create <| Path.GetRelativePath(rootPath, path))
 
     let extractMultiple (rootPath: string) (paths: string list) (filterRegex: string) =
+        // Recursively filter out any ignored names. 
+        let rec filter (m: Member) =
+            match m.MatchName filterRegex, m with
+            | false, Member.Module m ->
+                Some <| Member.Module { m with Members = m.Members |> List.choose filter }
+            | false, _ -> Some m
+            | true, _ -> None
         
         paths
         |> List.map (fun p -> extract rootPath p)
         |> List.concat
-        |> List.choose (fun m ->
-            match m.MatchName filterRegex |> not with
-            | true -> Some (m)
-            | false -> None)
+        |> List.choose filter
         |> List.groupBy (fun r -> r.GetNamespace())
         |> Map.ofList
         
@@ -163,7 +168,14 @@ module SourceExtractor =
                 (fun (acc, topLevel) m ->
                     match m with
                     | Member.Module mm -> acc @ [ mm ], topLevel
-                    | _ -> acc, topLevel @ [])
+                    | _ -> acc, topLevel @ [ m ])
                 ([], [])
+        
+        let tlm =
+            match topLevel |> List.tryHead with
+            | Some m ->
+                let ns = m.GetNamespace()
+                [ ModuleDocument.CreateTopLevel(ns |> slugifyName, ns, ns, ns, m.GetPath(), topLevel) ]
+            | None -> []
                 
-        modules
+        tlm @ modules

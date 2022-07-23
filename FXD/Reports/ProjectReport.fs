@@ -7,7 +7,7 @@ module ProjectReport =
     open System.Text.RegularExpressions
     open Fluff.Core
     open ToolBox.Core
-    
+
     type PackageVersion = { Name: string }
 
     type DependencyType =
@@ -135,6 +135,29 @@ module ProjectReport =
         |> List.map createProjectReferenceObj
         |> fun r -> Mustache.Value.Array r
 
+    let extract (path: string) =
+        getSolutionDependencies path
+        |> List.choose (fun pd ->
+            match pd with
+            | Ok pd -> Some pd
+            | _ -> None)
+        |> List.map (fun pd ->
+            Mustache.Value.Object(
+                [ "project_name", Mustache.Value.Scalar pd.Name
+                  if pd.PackageDependencies.IsEmpty |> not then
+                      "package_dependencies",
+                      [ "package_references", createPackageReferenceObjs pd.PackageDependencies ]
+                      |> Map.ofList
+                      |> Mustache.Value.Object
+
+                  if pd.ProjectDependencies.IsEmpty |> not then
+                      "project_dependencies",
+                      [ "project_references", createProjectReferenceObjs pd.ProjectDependencies ]
+                      |> Map.ofList
+                      |> Mustache.Value.Object ]
+                |> Map.ofList
+            ))
+    
     let generate (template: string) (path: string) =
         getSolutionDependencies path
         |> List.choose (fun pd ->
@@ -144,8 +167,17 @@ module ProjectReport =
         |> List.map (fun pd ->
             Mustache.Value.Object(
                 [ "project_name", Mustache.Value.Scalar pd.Name
-                  "package_references", createPackageReferenceObjs pd.PackageDependencies
-                  "project_references", createProjectReferenceObjs pd.ProjectDependencies ]
+                  if pd.PackageDependencies.IsEmpty |> not then
+                      "package_dependencies",
+                      [ "package_references", createPackageReferenceObjs pd.PackageDependencies ]
+                      |> Map.ofList
+                      |> Mustache.Value.Object
+
+                  if pd.ProjectDependencies.IsEmpty |> not then
+                      "project_dependencies",
+                      [ "project_references", createProjectReferenceObjs pd.ProjectDependencies ]
+                      |> Map.ofList
+                      |> Mustache.Value.Object ]
                 |> Map.ofList
             ))
         |> fun r ->
