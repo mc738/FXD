@@ -108,14 +108,14 @@ let main argv =
             .LoadAndAdd("project_report", "C:\\Users\\44748\\Projects\\FXD\\Templates\\project_report.mustache")
 
     let cfg =
-        File.ReadAllText "C:\\Users\\44748\\Projects\\Peeps\\fxd.json"
+        File.ReadAllText "C:\\Users\\44748\\Projects\\Freql\\fxd.json"
         |> JsonSerializer.Deserialize<Configuration.PipelineConfiguration>
 
     let pipeline =
         ({ Name = cfg.Name
            Templates = templateCache
-           RootPath = "C:\\Users\\44748\\Projects\\Peeps"
-           OutputRoot = "C:\\ProjectData\\Peeps\\website\\docs"
+           RootPath = "C:\\Users\\44748\\Projects\\Freql"
+           OutputRoot = "C:\\ProjectData\\Freql\\website\\docs"
            GlobalMetaData =
              [ "fxd_version", "0.1.0"
                "fxd_repo_url", "https://github.com/mc738/FXD"
