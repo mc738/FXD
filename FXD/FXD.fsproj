@@ -32,8 +32,9 @@
     </ItemGroup>
 
     <ItemGroup>
-      <PackageReference Include="FDOM.Core" Version="0.1.0" />
-      <PackageReference Include="FDOM.Rendering.Html" Version="0.1.0" />
+      <PackageReference Include="FDOM.Core" Version="0.3.0" />
+      <PackageReference Include="FDOM.Rendering.Html" Version="0.3.0" />
+      <PackageReference Include="Fluff.Core" Version="0.3.0" />
       <PackageReference Include="FSharp.Compiler.Service" Version="41.0.1" />
     </ItemGroup>
 
