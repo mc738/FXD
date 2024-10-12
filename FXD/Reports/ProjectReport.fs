@@ -1,13 +1,15 @@
 ﻿namespace FXD.Reports
 
-open FsToolbox.Core
+#nowarn "3391"
 
 [<RequireQualifiedAccess>]
 module ProjectReport =
 
     open System.IO
     open System.Text.RegularExpressions
+    open FsToolbox.Core
     open Fluff.Core
+
 
     type PackageVersion = { Name: string }
 
@@ -44,7 +46,8 @@ module ProjectReport =
                         match Xml.tryGetAttribute "Include" pr with
                         | Some a ->
                             ({ Name = getNameFromProj a.Value
-                               Path = a.Value }: ProjectDependency)
+                               Path = a.Value }
+                            : ProjectDependency)
                             |> Ok
                         | None -> Error "Malformed element (missing Include attribute).")
 
@@ -52,9 +55,7 @@ module ProjectReport =
                     Xml.getElements "PackageReference" ig
                     |> List.map (fun pr ->
                         match Xml.tryGetAttribute "Include" pr, Xml.tryGetAttribute "Version" pr with
-                        | Some ia, Some va ->
-                            ({ Name = ia.Value; Version = va.Value }: PackageDependency)
-                            |> Ok
+                        | Some ia, Some va -> ({ Name = ia.Value; Version = va.Value }: PackageDependency) |> Ok
 
                         | _ -> Error "Malformed element (missing Include or Version attribute)")
 
@@ -86,7 +87,8 @@ module ProjectReport =
                 ({ Name = getNameFromProj path
                    ProjectFilePath = path
                    ProjectDependencies = projs
-                   PackageDependencies = packs }: ProjectDetails)
+                   PackageDependencies = packs }
+                : ProjectDetails)
                 |> Ok)
 
     let getSolutionDependencies (path: string) =
@@ -105,12 +107,12 @@ module ProjectReport =
             let childrenPds =
                 di.EnumerateDirectories()
                 |> List.ofSeq
-                |> List.map (fun di -> searchLoop (di.FullName))
+                |> List.map (fun di -> searchLoop di.FullName)
                 |> List.concat
 
             pds @ childrenPds
 
-        searchLoop (path)
+        searchLoop path
 
     let createPackageReferenceObj (packageDependency: PackageDependency) =
         Mustache.Value.Object(
@@ -120,9 +122,7 @@ module ProjectReport =
         )
 
     let createPackageReferenceObjs (pds: PackageDependency list) =
-        pds
-        |> List.map createPackageReferenceObj
-        |> fun r -> Mustache.Value.Array r
+        pds |> List.map createPackageReferenceObj |> (fun r -> Mustache.Value.Array r)
 
     let createProjectReferenceObj (packageDependency: ProjectDependency) =
         Mustache.Value.Object(
@@ -132,9 +132,7 @@ module ProjectReport =
         )
 
     let createProjectReferenceObjs (pds: ProjectDependency list) =
-        pds
-        |> List.map createProjectReferenceObj
-        |> fun r -> Mustache.Value.Array r
+        pds |> List.map createProjectReferenceObj |> (fun r -> Mustache.Value.Array r)
 
     let extract (path: string) =
         getSolutionDependencies path
@@ -158,7 +156,7 @@ module ProjectReport =
                       |> Mustache.Value.Object ]
                 |> Map.ofList
             ))
-    
+
     let generate (template: string) (path: string) =
         getSolutionDependencies path
         |> List.choose (fun pd ->
@@ -182,8 +180,7 @@ module ProjectReport =
                 |> Map.ofList
             ))
         |> fun r ->
-            ({ Values =
-                [ "projects", Mustache.Value.Array r ]
-                |> Map.ofList
-               Partials = Map.empty }: Mustache.Data)
+            ({ Values = [ "projects", Mustache.Value.Array r ] |> Map.ofList
+               Partials = Map.empty }
+            : Mustache.Data)
         |> fun v -> Mustache.parse template |> Mustache.replace v true

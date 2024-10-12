@@ -4,8 +4,6 @@ Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "FXD", "FXD\FXD.fsproj", "{4
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "FDX.App", "FDX.App\FDX.App.fsproj", "{E76E77A9-9C17-443F-88C2-21E8658CA9B5}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "External", "External", "{E49ADDB6-A782-4534-A782-D694D70B88F7}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU

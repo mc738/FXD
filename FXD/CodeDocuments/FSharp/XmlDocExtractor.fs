@@ -73,7 +73,7 @@ module XmlDocExtractor =
         match root |> getElement "members" with
         | Some el ->
             el.Elements(xName "member")
-            |> listMap (fun mel -> extractMember mel)
+            |> listMap extractMember
             |> List.map (fun m -> m.Name, m)
             |> Map.ofList
         | None -> failwith "Error"
@@ -94,4 +94,4 @@ module XmlDocExtractor =
                 | _ -> None
             | false -> None
         | FSharpXmlDoc.FromXmlFile _ -> None
-        | FSharpXmlDoc.None _ -> None
+        | FSharpXmlDoc.None -> None
