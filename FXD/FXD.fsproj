@@ -1,9 +1,9 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net6.0</TargetFramework>
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
         <WarnOn>3390;$(WarnOn)</WarnOn>
+        <TargetFrameworks>net6.0;net8.0</TargetFrameworks>
     </PropertyGroup>
 
     <ItemGroup>
@@ -36,6 +36,8 @@
       <PackageReference Include="FDOM.Rendering.Html" Version="0.3.0" />
       <PackageReference Include="Fluff.Core" Version="0.3.0" />
       <PackageReference Include="FSharp.Compiler.Service" Version="41.0.1" />
+      <PackageReference Include="FsToolbox" Version="0.10.0" />
+      <PackageReference Update="FSharp.Core" Version="8.0.401" />
     </ItemGroup>
 
 </Project>

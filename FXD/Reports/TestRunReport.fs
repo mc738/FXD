@@ -5,7 +5,7 @@ module TestRunReport =
 
     open System
     open System.Xml.Linq
-    open ToolBox.Core
+    open FsToolbox.Core
 
     type TestRun =
         { Id: Guid

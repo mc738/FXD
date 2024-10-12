@@ -1,12 +1,13 @@
 ﻿namespace FXD.Reports
 
+open FsToolbox.Core
+
 [<RequireQualifiedAccess>]
 module ProjectReport =
 
     open System.IO
     open System.Text.RegularExpressions
     open Fluff.Core
-    open ToolBox.Core
 
     type PackageVersion = { Name: string }
 

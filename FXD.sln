@@ -6,8 +6,6 @@ Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "FDX.App", "FDX.App\FDX.App.
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "External", "External", "{E49ADDB6-A782-4534-A782-D694D70B88F7}"
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "ToolBox", "..\ToolBox\ToolBox\ToolBox.fsproj", "{9DC22E12-34C6-4FAB-A861-3E2FDDCA9C10}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -22,12 +20,7 @@ Global
 		{E76E77A9-9C17-443F-88C2-21E8658CA9B5}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{E76E77A9-9C17-443F-88C2-21E8658CA9B5}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{E76E77A9-9C17-443F-88C2-21E8658CA9B5}.Release|Any CPU.Build.0 = Release|Any CPU
-		{9DC22E12-34C6-4FAB-A861-3E2FDDCA9C10}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{9DC22E12-34C6-4FAB-A861-3E2FDDCA9C10}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{9DC22E12-34C6-4FAB-A861-3E2FDDCA9C10}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{9DC22E12-34C6-4FAB-A861-3E2FDDCA9C10}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
-		{9DC22E12-34C6-4FAB-A861-3E2FDDCA9C10} = {E49ADDB6-A782-4534-A782-D694D70B88F7}
 	EndGlobalSection
 EndGlobal
